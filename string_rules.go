@@ -1,8 +1,14 @@
 package sval
 
-import (
-	"errors"
-	"fmt"
+import "regexp"
+
+type StringRuleName = string
+
+const (
+	StringRuleNameMinLen   StringRuleName = "min_len"
+	StringRuleNameMaxLen   StringRuleName = "max_len"
+	StringRuleNameRegex    StringRuleName = "regex"
+	StringRuleNameAlphanum StringRuleName = "alphanum"
 )
 
 type StringRules struct {
@@ -14,30 +20,42 @@ type StringRules struct {
 }
 
 func (r *StringRules) Validate(i any) error {
+	err := NewValidationError()
+
 	val, ok := i.(string)
 	if !ok {
-		return errors.New("value must be a string")
+		err.AddError(BaseRuleType, "string", "value must be a string")
+		return err
 	}
 
 	if r.Required && val == "" {
-		return errors.New("field is required")
+		err.AddError(BaseRuleNameRequired, r.Required, "field is required")
+		return err
 	}
 
 	if r.MinLen > 0 && len(val) < r.MinLen {
-		return fmt.Errorf("value too short, min length: %d", r.MinLen)
+		err.AddError(StringRuleNameMinLen, r.MinLen, "value too short")
 	}
 
 	if r.MaxLen > 0 && len(val) > r.MaxLen {
-		return fmt.Errorf("value too long, max length: %d", r.MaxLen)
+		err.AddError(StringRuleNameMaxLen, r.MaxLen, "value too long")
 	}
 
 	if r.Regex != "" {
-		// regexp check
+		re, compileErr := regexp.Compile(r.Regex)
+		if compileErr == nil && !re.MatchString(val) {
+			err.AddError(StringRuleNameRegex, r.Regex, "value does not match pattern")
+		}
 	}
 
 	if r.Alphanum {
+		// TODO: add aplhanum checks
 		// alphanum checks
 	}
 
-	return nil
+	if err.HasErrors() {
+		return err
+	}
+
+	return err
 }
