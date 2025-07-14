@@ -6,10 +6,14 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"gopkg.in/yaml.v3"
 )
+
+var indexRegex = regexp.MustCompile(`\[\d+\]`)
 
 type validator struct {
 	rules map[string]RuleSet
@@ -153,31 +157,31 @@ func toInt(val any) (int, bool) {
 func parseStringRules(params map[string]any) (*StringRules, error) {
 	rules := &StringRules{}
 
-	if v, ok := params["required"]; ok {
+	if v, ok := params[BaseRuleNameRequired]; ok {
 		if required, ok := v.(bool); ok {
 			rules.Required = required
 		}
 	}
 
-	if v, ok := params["min_len"]; ok {
+	if v, ok := params[StringRuleNameMinLen]; ok {
 		if minLen, ok := toInt(v); ok {
 			rules.MinLen = minLen
 		}
 	}
 
-	if v, ok := params["max_len"]; ok {
+	if v, ok := params[StringRuleNameMaxLen]; ok {
 		if maxLen, ok := toInt(v); ok {
 			rules.MaxLen = maxLen
 		}
 	}
 
-	if v, ok := params["regex"]; ok {
+	if v, ok := params[StringRuleNameRegex]; ok {
 		if regex, ok := v.(string); ok {
 			rules.Regex = regex
 		}
 	}
 
-	if v, ok := params["alphanum"]; ok {
+	if v, ok := params[StringRuleNameAlphanum]; ok {
 		if alphanum, ok := v.(bool); ok {
 			rules.Alphanum = alphanum
 		}
@@ -189,25 +193,25 @@ func parseStringRules(params map[string]any) (*StringRules, error) {
 func parseEmailRules(params map[string]any) (*EmailRules, error) {
 	rules := &EmailRules{}
 
-	if v, ok := params["required"]; ok {
+	if v, ok := params[BaseRuleNameRequired]; ok {
 		if required, ok := v.(bool); ok {
 			rules.Required = required
 		}
 	}
 
-	if v, ok := params["rfc"]; ok {
+	if v, ok := params[EmailRuleNameRFC]; ok {
 		if rfc, ok := v.(bool); ok {
 			rules.RFC = rfc
 		}
 	}
 
-	if v, ok := params["min_domain_len"]; ok {
+	if v, ok := params[EmailRuleNameMinDomainLen]; ok {
 		if minLen, ok := toInt(v); ok {
 			rules.MinDomainLen = minLen
 		}
 	}
 
-	if v, ok := params["excluded_domains"]; ok {
+	if v, ok := params[EmailRuleNameExcludedDomains]; ok {
 		if domains, ok := v.([]any); ok {
 			for _, d := range domains {
 				if domain, ok := d.(string); ok {
@@ -217,7 +221,7 @@ func parseEmailRules(params map[string]any) (*EmailRules, error) {
 		}
 	}
 
-	if v, ok := params["allowed_domains"]; ok {
+	if v, ok := params[EmailRuleNameAllowedDomains]; ok {
 		if domains, ok := v.([]any); ok {
 			for _, d := range domains {
 				if domain, ok := d.(string); ok {
@@ -278,55 +282,110 @@ func parsePasswordRules(params map[string]any) (*PasswordRules, error) {
 	return rules, nil
 }
 
+// TODO: Implement parseNumberRules function
 func parseNumberRules(params map[string]any) (RuleSet, error) {
 	return &NumberRules{}, nil
 }
 
+// TODO: Implement parseIPRules function
 func parseIPRules(params map[string]any) (RuleSet, error) {
 	return &IPRules{}, nil
 }
 
+type validationContext struct {
+	Path string
+}
+
 func (v *validator) Validate(data any) error {
-	val := reflect.ValueOf(data)
+	return v.validateRecursive(reflect.ValueOf(data), validationContext{Path: ""})
+}
+
+func (v *validator) validateRecursive(val reflect.Value, ctx validationContext) error {
 	if val.Kind() == reflect.Ptr {
+		if val.IsNil() {
+			return nil
+		}
 		val = val.Elem()
 	}
 
-	if val.Kind() != reflect.Struct {
-		return errors.New("validator supports only struct types")
-	}
+	switch val.Kind() {
+	case reflect.Struct:
+		errs := NewValidationError()
+		typ := val.Type()
+		for i := 0; i < val.NumField(); i++ {
+			field := typ.Field(i)
+			fieldValue := val.Field(i)
 
-	typ := val.Type()
+			tag := field.Tag.Get("sval")
+			if tag == "" {
+				continue
+			}
 
-	for i := 0; i < val.NumField(); i++ {
-		field := typ.Field(i)
-		fieldValue := val.Field(i)
+			currentPath := tag
+			if ctx.Path != "" {
+				currentPath = ctx.Path + "." + tag
+			}
+			currentCtx := validationContext{Path: currentPath}
 
-		tag := field.Tag.Get("sval")
-		if tag == "" {
-			continue
+			if err := v.validateRecursive(fieldValue, currentCtx); err != nil {
+				errs.AppendError(err.(*ValidationError))
+			}
 		}
 
-		ruleSet, exists := v.rules[tag]
+		if errs.HasErrors() {
+			return errs
+		}
+		return nil
+
+	case reflect.Slice, reflect.Array:
+		return v.validateSlice(val, ctx)
+
+	default:
+		normalized := normalizePath(ctx.Path)
+		ruleSet, exists := v.rules[normalized]
 		if !exists {
-			continue
+			return nil
 		}
 
 		var value any
-		if fieldValue.Kind() == reflect.Ptr {
-			if fieldValue.IsNil() {
-				value = nil
-			} else {
-				value = fieldValue.Elem().Interface()
-			}
-		} else {
-			value = fieldValue.Interface()
+		if val.CanInterface() {
+			value = val.Interface()
 		}
 
 		if err := ruleSet.Validate(value); err != nil {
-			return fmt.Errorf("%s: %w", field.Name, err)
+			return err
+		}
+		return nil
+	}
+}
+
+func (v *validator) validateSlice(slice reflect.Value, ctx validationContext) error {
+	errs := NewValidationError()
+	for i := 0; i < slice.Len(); i++ {
+		elem := slice.Index(i)
+		newPath := ctx.Path + "[" + strconv.Itoa(i) + "]"
+		newCtx := validationContext{Path: newPath}
+
+		if err := v.validateRecursive(elem, newCtx); err != nil {
+			errs.AppendError(err.(*ValidationError))
 		}
 	}
 
+	if errs.HasErrors() {
+		return errs
+	}
+
 	return nil
+}
+
+func normalizePath(path string) string {
+	return indexRegex.ReplaceAllString(path, "[]")
+}
+
+func (v validator) String() string {
+	var sb strings.Builder
+	for field, rules := range v.rules {
+		sb.WriteString(fmt.Sprintf("%s: %T\n", field, rules))
+	}
+	return sb.String()
 }
