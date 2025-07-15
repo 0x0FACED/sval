@@ -200,9 +200,18 @@ P.S. in errors output `id` is not number of field or number of slice element. Th
 - [x] String
 - [x] Email
 - [ ] IP
-- [ ] Number
+- [x] Number
 - [ ] Mac
-- [ ] AND MORE
+- [ ] Date and time
+- [ ] geo
+- [ ] url
+- [ ] colors
+- [ ] iban
+- [ ] isbn
+- [ ] arrays
+- [ ] phones
+- [ ] uuids
+- [ ] custom validations
 
 ## A little roadmap
 
