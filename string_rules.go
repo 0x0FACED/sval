@@ -22,9 +22,22 @@ type StringRules struct {
 func (r *StringRules) Validate(i any) error {
 	err := NewValidationError()
 
+	if i == nil && r.Required {
+		err.AddError(BaseRuleNameRequired, r.Required, FieldIsRequired)
+		return err
+	}
+
+	if ptr, ok := i.(*string); ok {
+		if ptr == nil && r.Required {
+			err.AddError(BaseRuleNameRequired, r.Required, FieldIsRequired)
+			return err
+		}
+		i = *ptr
+	}
+
 	val, ok := i.(string)
 	if !ok {
-		err.AddError(BaseRuleType, "string", "value must be a string")
+		err.AddError(BaseRuleNameType, "string", "value must be a string")
 		return err
 	}
 

@@ -13,6 +13,10 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+const (
+	FieldIsRequired = "field is required"
+)
+
 var indexRegex = regexp.MustCompile(`\[\d+\]`)
 
 type validator struct {
@@ -282,9 +286,34 @@ func parsePasswordRules(params map[string]any) (*PasswordRules, error) {
 	return rules, nil
 }
 
-// TODO: Implement parseNumberRules function
 func parseNumberRules(params map[string]any) (RuleSet, error) {
-	return &NumberRules{}, nil
+	rules := &NumberRules{}
+
+	if v, ok := params[BaseRuleNameRequired]; ok {
+		if required, ok := v.(bool); ok {
+			rules.Required = required
+		}
+	}
+
+	if v, ok := params[NumberRuleNameMin]; ok {
+		if min, ok := v.(float64); ok {
+			rules.Min = &min
+		} else if min, ok := v.(int); ok {
+			fmin := float64(min)
+			rules.Min = &fmin
+		}
+	}
+
+	if v, ok := params[NumberRuleNameMax]; ok {
+		if max, ok := v.(float64); ok {
+			rules.Max = &max
+		} else if max, ok := v.(int); ok {
+			fmax := float64(max)
+			rules.Max = &fmax
+		}
+	}
+
+	return rules, nil
 }
 
 // TODO: Implement parseIPRules function
@@ -301,10 +330,18 @@ func (v *validator) Validate(data any) error {
 }
 
 func (v *validator) validateRecursive(val reflect.Value, ctx validationContext) error {
+	normalized := normalizePath(ctx.Path)
+	ruleSet, hasRules := v.rules[normalized]
+
 	if val.Kind() == reflect.Ptr {
-		if val.IsNil() {
+		if val.IsNil() && hasRules {
+			if err := ruleSet.Validate(nil); err != nil {
+				return err
+			}
+
 			return nil
 		}
+
 		val = val.Elem()
 	}
 

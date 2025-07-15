@@ -4,7 +4,7 @@ type BaseRuleName = string
 
 const (
 	BaseRuleNameRequired BaseRuleName = "required"
-	BaseRuleType         BaseRuleName = "type"
+	BaseRuleNameType     BaseRuleName = "type"
 )
 
 type BaseRules struct {
