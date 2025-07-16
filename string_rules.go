@@ -55,6 +55,7 @@ func (r *StringRules) Validate(i any) error {
 	}
 
 	if r.Regex != "" {
+		// TODO: move regex compilation from validate
 		re, compileErr := regexp.Compile(r.Regex)
 		if compileErr == nil && !re.MatchString(val) {
 			err.AddError(StringRuleNameRegex, r.Regex, i, "value does not match pattern")

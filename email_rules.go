@@ -13,7 +13,7 @@ const (
 	EmailRuleNameMinDomainLen    EmailRuleName = "min_domain_len"
 	EmailRuleNameExcludedDomains EmailRuleName = "excluded_domains"
 	EmailRuleNameAllowedDomains  EmailRuleName = "allowed_domains"
-	EmailRuleNameRegexp          EmailRuleName = "regexp"
+	EmailRuleNameRegexp          EmailRuleName = "regex"
 )
 
 var (
