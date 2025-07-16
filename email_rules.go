@@ -33,13 +33,13 @@ func (r *EmailRules) Validate(i any) error {
 	err := NewValidationError()
 
 	if i == nil && r.Required {
-		err.AddError(BaseRuleNameRequired, r.Required, FieldIsRequired)
+		err.AddError(BaseRuleNameRequired, r.Required, i, FieldIsRequired)
 		return err
 	}
 
 	if ptr, ok := i.(*string); ok {
 		if ptr == nil && r.Required {
-			err.AddError(BaseRuleNameRequired, r.Required, FieldIsRequired)
+			err.AddError(BaseRuleNameRequired, r.Required, i, FieldIsRequired)
 			return err
 		}
 		i = *ptr
@@ -47,18 +47,18 @@ func (r *EmailRules) Validate(i any) error {
 
 	val, ok := i.(string)
 	if !ok {
-		err.AddError(BaseRuleNameType, "string", "value must be a string")
+		err.AddError(BaseRuleNameType, TypeEmail, i, "value must be a string")
 		return err
 	}
 
 	if r.Required && val == "" {
-		err.AddError(BaseRuleNameRequired, r.Required, FieldIsRequired)
+		err.AddError(BaseRuleNameRequired, r.Required, i, FieldIsRequired)
 		return err
 	}
 
 	if r.Strategy != "" {
 		if !validateEmail(val, EmailValidationStrategy(r.Strategy)) {
-			err.AddError(EmailRuleNameStrategy, r.Strategy, "email does not conform to chosen strategy")
+			err.AddError(EmailRuleNameStrategy, r.Strategy, i, "email does not conform to chosen strategy")
 		}
 	}
 
@@ -69,26 +69,26 @@ func (r *EmailRules) Validate(i any) error {
 
 	domain := val[atIndex+1:]
 	if r.MinDomainLen > 0 && len(domain) < r.MinDomainLen {
-		err.AddError(EmailRuleNameMinDomainLen, r.MinDomainLen, "domain part of email is too short")
+		err.AddError(EmailRuleNameMinDomainLen, r.MinDomainLen, i, "domain part of email is too short")
 	}
 
 	if len(r.ExcludedDomains) > 0 {
 		for _, excluded := range r.ExcludedDomains {
 			if domain == excluded {
-				err.AddError(EmailRuleNameExcludedDomains, r.ExcludedDomains, "email domain is excluded")
+				err.AddError(EmailRuleNameExcludedDomains, r.ExcludedDomains, i, "email domain is excluded")
 			}
 		}
 	}
 
 	if len(r.AllowedDomains) > 0 {
 		if !slices.Contains(r.AllowedDomains, domain) {
-			err.AddError(EmailRuleNameAllowedDomains, r.AllowedDomains, "email domain is not allowed")
+			err.AddError(EmailRuleNameAllowedDomains, r.AllowedDomains, i, "email domain is not allowed")
 		}
 	}
 
 	if r.Regex != nil {
 		if !matchRegex(val) {
-			err.AddError(EmailRuleNameRegexp, *r.Regex, "email does not match the regex pattern")
+			err.AddError(EmailRuleNameRegexp, *r.Regex, i, "email does not match the regex pattern")
 		}
 	}
 

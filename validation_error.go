@@ -13,6 +13,7 @@ type valError struct {
 	ID         int    `json:"id" yaml:"id"`
 	Rule       string `json:"rule" yaml:"rule"`
 	RuleValues any    `json:"rule_values,omitempty" yaml:"rule_values,omitempty"`
+	Provided   any    `json:"provided,omitempty" yaml:"provided,omitempty"`
 	Message    string `json:"message" yaml:"message"`
 }
 
@@ -26,11 +27,12 @@ func (e *ValidationError) Error() string {
 	return sb.String()
 }
 
-func (e *ValidationError) AddError(rule string, ruleValue any, message string) {
+func (e *ValidationError) AddError(rule string, ruleValue, provided any, message string) {
 	e.Errors = append(e.Errors, &valError{
 		ID:         len(e.Errors) + 1,
 		Rule:       rule,
 		RuleValues: ruleValue,
+		Provided:   provided,
 		Message:    message,
 	})
 }
@@ -46,6 +48,7 @@ func (e *ValidationError) AppendError(err *ValidationError) {
 			ID:         baseID + verr.ID,
 			Rule:       verr.Rule,
 			RuleValues: verr.RuleValues,
+			Provided:   verr.Provided,
 			Message:    verr.Message,
 		}
 		e.Errors = append(e.Errors, newError)

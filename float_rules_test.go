@@ -42,7 +42,7 @@ func TestFloatRules(t *testing.T) {
 			wantErr: true,
 			expected: func() error {
 				err := NewValidationError()
-				err.AddError(BaseRuleNameRequired, true, FieldIsRequired)
+				err.AddError(BaseRuleNameRequired, true, nil, FieldIsRequired)
 				return err
 			}(),
 		},
@@ -59,7 +59,7 @@ func TestFloatRules(t *testing.T) {
 			wantErr: true,
 			expected: func() error {
 				err := NewValidationError()
-				err.AddError(FloatRuleNameMin, min, "value must be greater than or equal to min")
+				err.AddError(FloatRuleNameMin, min, -1.0, "value must be greater than or equal to min")
 				return err
 			}(),
 		},
@@ -76,7 +76,7 @@ func TestFloatRules(t *testing.T) {
 			wantErr: true,
 			expected: func() error {
 				err := NewValidationError()
-				err.AddError(FloatRuleNameMax, max, "value must be less than or equal to max")
+				err.AddError(FloatRuleNameMax, max, 101.0, "value must be less than or equal to max")
 				return err
 			}(),
 		},
@@ -93,7 +93,7 @@ func TestFloatRules(t *testing.T) {
 			wantErr: true,
 			expected: func() error {
 				err := NewValidationError()
-				err.AddError(BaseRuleNameType, TypeFloat, "value must be a float")
+				err.AddError(BaseRuleNameType, TypeFloat, 24, "value must be a float")
 				return err
 			}(),
 		},

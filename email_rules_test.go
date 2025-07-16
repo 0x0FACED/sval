@@ -57,7 +57,7 @@ func TestEmailRules(t *testing.T) {
 			wantErr: true,
 			expected: func() error {
 				err := NewValidationError()
-				err.AddError(EmailRuleNameStrategy, true, "email does not conform to RFC standards")
+				err.AddError(EmailRuleNameStrategy, true, "invalid.email@example.com@", "email does not conform to RFC standards")
 				return err
 			}(),
 		},

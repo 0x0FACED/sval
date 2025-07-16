@@ -23,13 +23,13 @@ func (r *StringRules) Validate(i any) error {
 	err := NewValidationError()
 
 	if i == nil && r.Required {
-		err.AddError(BaseRuleNameRequired, r.Required, FieldIsRequired)
+		err.AddError(BaseRuleNameRequired, r.Required, i, FieldIsRequired)
 		return err
 	}
 
 	if ptr, ok := i.(*string); ok {
 		if ptr == nil && r.Required {
-			err.AddError(BaseRuleNameRequired, r.Required, FieldIsRequired)
+			err.AddError(BaseRuleNameRequired, r.Required, i, FieldIsRequired)
 			return err
 		}
 		i = *ptr
@@ -37,27 +37,27 @@ func (r *StringRules) Validate(i any) error {
 
 	val, ok := i.(string)
 	if !ok {
-		err.AddError(BaseRuleNameType, "string", "value must be a string")
+		err.AddError(BaseRuleNameType, TypeString, i, "value must be a string")
 		return err
 	}
 
 	if r.Required && val == "" {
-		err.AddError(BaseRuleNameRequired, r.Required, "field is required")
+		err.AddError(BaseRuleNameRequired, r.Required, i, "field is required")
 		return err
 	}
 
 	if r.MinLen > 0 && len(val) < r.MinLen {
-		err.AddError(StringRuleNameMinLen, r.MinLen, "value too short")
+		err.AddError(StringRuleNameMinLen, r.MinLen, i, "value too short")
 	}
 
 	if r.MaxLen > 0 && len(val) > r.MaxLen {
-		err.AddError(StringRuleNameMaxLen, r.MaxLen, "value too long")
+		err.AddError(StringRuleNameMaxLen, r.MaxLen, i, "value too long")
 	}
 
 	if r.Regex != "" {
 		re, compileErr := regexp.Compile(r.Regex)
 		if compileErr == nil && !re.MatchString(val) {
-			err.AddError(StringRuleNameRegex, r.Regex, "value does not match pattern")
+			err.AddError(StringRuleNameRegex, r.Regex, i, "value does not match pattern")
 		}
 	}
 

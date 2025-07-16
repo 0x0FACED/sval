@@ -42,7 +42,7 @@ func TestIntRules(t *testing.T) {
 			wantErr: true,
 			expected: func() error {
 				err := NewValidationError()
-				err.AddError(BaseRuleNameRequired, true, FieldIsRequired)
+				err.AddError(BaseRuleNameRequired, true, nil, FieldIsRequired)
 				return err
 			}(),
 		},
@@ -59,7 +59,7 @@ func TestIntRules(t *testing.T) {
 			wantErr: true,
 			expected: func() error {
 				err := NewValidationError()
-				err.AddError(IntRuleNameMin, min, "value must be greater than or equal to min")
+				err.AddError(IntRuleNameMin, min, -1, "value must be greater than or equal to min")
 				return err
 			}(),
 		},
@@ -76,7 +76,7 @@ func TestIntRules(t *testing.T) {
 			wantErr: true,
 			expected: func() error {
 				err := NewValidationError()
-				err.AddError(IntRuleNameMax, max, "value must be less than or equal to max")
+				err.AddError(IntRuleNameMax, max, 101, "value must be less than or equal to max")
 				return err
 			}(),
 		},
@@ -93,7 +93,7 @@ func TestIntRules(t *testing.T) {
 			wantErr: true,
 			expected: func() error {
 				err := NewValidationError()
-				err.AddError(BaseRuleNameType, TypeInt, "value must be int")
+				err.AddError(BaseRuleNameType, TypeInt, "not an int", "value must be int")
 				return err
 			}(),
 		},
