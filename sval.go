@@ -102,7 +102,8 @@ const (
 	TypeString   RuleType = "string"
 	TypeEmail    RuleType = "email"
 	TypePassword RuleType = "password"
-	TypeNumber   RuleType = "number"
+	TypeInt      RuleType = "int"
+	TypeFloat    RuleType = "float"
 	TypeIP       RuleType = "ip"
 )
 
@@ -136,8 +137,8 @@ func createRuleSet(cfg RuleConfig) (RuleSet, error) {
 		return parseEmailRules(cfg.Params)
 	case string(TypePassword):
 		return parsePasswordRules(cfg.Params)
-	case string(TypeNumber):
-		return parseNumberRules(cfg.Params)
+	case string(TypeInt):
+		return parseIntRules(cfg.Params)
 	case string(TypeIP):
 		return parseIPRules(cfg.Params)
 	default:
@@ -203,9 +204,12 @@ func parseEmailRules(params map[string]any) (*EmailRules, error) {
 		}
 	}
 
-	if v, ok := params[EmailRuleNameRFC]; ok {
-		if rfc, ok := v.(bool); ok {
-			rules.RFC = rfc
+	if v, ok := params[EmailRuleNameStrategy]; ok {
+		if strategy, ok := v.(string); ok {
+			if !validateStrategy(EmailValidationStrategy(strategy)) {
+				return nil, fmt.Errorf("invalid email validation strategy: %s", strategy)
+			}
+			rules.Strategy = strategy
 		}
 	}
 
@@ -232,6 +236,14 @@ func parseEmailRules(params map[string]any) (*EmailRules, error) {
 					rules.AllowedDomains = append(rules.AllowedDomains, domain)
 				}
 			}
+		}
+	}
+
+	if v, ok := params[EmailRuleNameRegexp]; ok {
+		if regex, ok := v.(*string); ok {
+			// global regex for email validation
+			emailRegexp = regexp.MustCompile(*regex)
+			rules.Regex = regex
 		}
 	}
 
@@ -286,8 +298,8 @@ func parsePasswordRules(params map[string]any) (*PasswordRules, error) {
 	return rules, nil
 }
 
-func parseNumberRules(params map[string]any) (RuleSet, error) {
-	rules := &NumberRules{}
+func parseIntRules(params map[string]any) (RuleSet, error) {
+	rules := &IntRules{}
 
 	if v, ok := params[BaseRuleNameRequired]; ok {
 		if required, ok := v.(bool); ok {
@@ -295,21 +307,15 @@ func parseNumberRules(params map[string]any) (RuleSet, error) {
 		}
 	}
 
-	if v, ok := params[NumberRuleNameMin]; ok {
-		if min, ok := v.(float64); ok {
+	if v, ok := params[IntRuleNameMin]; ok {
+		if min, ok := v.(int); ok {
 			rules.Min = &min
-		} else if min, ok := v.(int); ok {
-			fmin := float64(min)
-			rules.Min = &fmin
 		}
 	}
 
-	if v, ok := params[NumberRuleNameMax]; ok {
-		if max, ok := v.(float64); ok {
+	if v, ok := params[IntRuleNameMax]; ok {
+		if max, ok := v.(int); ok {
 			rules.Max = &max
-		} else if max, ok := v.(int); ok {
-			fmax := float64(max)
-			rules.Max = &fmax
 		}
 	}
 

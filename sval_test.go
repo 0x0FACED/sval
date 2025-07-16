@@ -148,7 +148,7 @@ func TestValidator_Validate(t *testing.T) {
 			name: "nil pointer with required",
 			rules: map[string]RuleConfig{
 				"age": {
-					Type: "number",
+					Type: "int",
 					Params: map[string]any{
 						"required": true,
 					},
@@ -182,7 +182,7 @@ func TestValidator_Validate(t *testing.T) {
 			name: "slice validation",
 			rules: map[string]RuleConfig{
 				"items[].value": {
-					Type: "number",
+					Type: "int",
 					Params: map[string]any{
 						"min": 0,
 						"max": 100,
@@ -283,9 +283,9 @@ func TestCreateRuleSet(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "number rules",
+			name: "int rules",
 			cfg: RuleConfig{
-				Type: "number",
+				Type: "int",
 				Params: map[string]any{
 					"required": true,
 					"min":      float64(0),
