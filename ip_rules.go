@@ -44,9 +44,12 @@ func (r *IPRules) Validate(i any) error {
 		return err
 	}
 
-	if r.Required && val == "" {
-		err.AddError(BaseRuleNameRequired, r.Required, i, FieldIsRequired)
-		return err
+	if val == "" {
+		if r.Required {
+			err.AddError(BaseRuleNameRequired, r.Required, i, FieldIsRequired)
+			return err
+		}
+		return nil
 	}
 
 	ip, errParse := netip.ParseAddr(val)
