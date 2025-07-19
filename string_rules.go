@@ -1,8 +1,11 @@
 package sval
 
 import (
+	"math"
 	"regexp"
+	"slices"
 	"strings"
+	"unicode/utf8"
 )
 
 type StringRuleName = string
@@ -25,6 +28,7 @@ const (
 
 type StringRules struct {
 	BaseRules
+	// MinLen and MaxLen in chars, not bytes
 	MinLen       int      `json:"min_len" yaml:"min_len"`
 	MaxLen       int      `json:"max_len" yaml:"max_len"`
 	Regex        *string  `json:"regex,omitempty" yaml:"regex,omitempty"`
@@ -83,11 +87,12 @@ func (r *StringRules) Validate(i any) error {
 		return nil
 	}
 
-	if r.MinLen > 0 && len(val) < r.MinLen {
+	length := utf8.RuneCountInString(val)
+	if r.MinLen > 0 && length < r.MinLen {
 		err.AddError(StringRuleNameMinLen, r.MinLen, i, "string too short")
 	}
 
-	if r.MaxLen > 0 && len(val) > r.MaxLen {
+	if r.MaxLen > 0 && length > r.MaxLen {
 		err.AddError(StringRuleNameMaxLen, r.MaxLen, i, "string too long")
 	}
 
@@ -113,17 +118,77 @@ func (r *StringRules) Validate(i any) error {
 		err.AddError(StringRuleNameNoWhitespace, true, i, "string must not contain whitespace")
 	}
 
+	// strange rule, i think must be 1st, but its here xd
 	if r.TrimSpace {
 		val = strings.TrimSpace(val)
 	}
 
 	if r.StartsWith != nil && !strings.HasPrefix(val, *r.StartsWith) {
+		err.AddError(StringRuleNameStartsWith, *r.StartsWith, i, "string must start with specified prefix")
+	}
 
+	if r.EndsWith != nil && !strings.HasSuffix(val, *r.EndsWith) {
+		err.AddError(StringRuleNameEndsWith, *r.EndsWith, i, "string must end with specified suffix")
+	}
+
+	if len(r.Contains) > 0 {
+		for _, substr := range r.Contains {
+			if !strings.Contains(val, substr) {
+				// rule value - substr or full slice?
+				err.AddError(StringRuleNameContains, substr, i, "string must contain specified substrings")
+				break
+			}
+		}
+	}
+
+	if len(r.NotContains) > 0 {
+		for _, substr := range r.NotContains {
+			if strings.Contains(val, substr) {
+				// rule value - substr or full slice?
+				err.AddError(StringRuleNameNotContains, substr, i, "string must not contain specified substring")
+				break
+			}
+		}
+	}
+
+	if len(r.OneOf) > 0 {
+		if !slices.Contains(r.OneOf, val) {
+			err.AddError(StringRuleNameOneOf, r.OneOf, i, "string must be one of the specified values")
+		}
+	}
+
+	// i dont know is this rule needed
+	if r.MinEntropy > 0 {
+		entropy := entropy(val)
+		if entropy < r.MinEntropy {
+			err.AddError(StringRuleNameMinEntropy, r.MinEntropy, i, "string entropy is too low")
+		}
 	}
 
 	if err.HasErrors() {
 		return err
 	}
 
-	return err
+	return nil
+}
+
+func entropy(s string) float64 {
+	if len(s) == 0 {
+		return 0
+	}
+
+	frequency := make(map[rune]int)
+	for _, char := range s {
+		frequency[char]++
+	}
+
+	var entropy float64
+	for _, count := range frequency {
+		probability := float64(count) / float64(len(s))
+		if probability > 0 {
+			entropy -= probability * math.Log2(probability)
+		}
+	}
+
+	return entropy
 }
