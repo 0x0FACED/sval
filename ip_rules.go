@@ -25,15 +25,21 @@ type IPRules struct {
 func (r *IPRules) Validate(i any) error {
 	err := NewValidationError()
 
-	if i == nil && r.Required {
-		err.AddError(BaseRuleNameRequired, r.Required, i, FieldIsRequired)
-		return err
+	if i == nil {
+		if r.Required {
+			err.AddError(BaseRuleNameRequired, r.Required, i, FieldIsRequired)
+			return err
+		}
+		return nil
 	}
 
 	if ptr, ok := i.(*string); ok {
-		if ptr == nil && r.Required {
-			err.AddError(BaseRuleNameRequired, r.Required, i, FieldIsRequired)
-			return err
+		if ptr == nil {
+			if r.Required {
+				err.AddError(BaseRuleNameRequired, r.Required, i, FieldIsRequired)
+				return err
+			}
+			return nil
 		}
 		i = *ptr
 	}

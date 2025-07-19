@@ -17,6 +17,7 @@ const (
 )
 
 var (
+	// TODO: remove global regex, use compiled regex in rules
 	emailRegexp *regexp.Regexp
 )
 
@@ -26,21 +27,28 @@ type EmailRules struct {
 	MinDomainLen    int      `json:"min_domain_len" yaml:"min_domain_len"`
 	ExcludedDomains []string `json:"excluded_domains" yaml:"excluded_domains"`
 	AllowedDomains  []string `json:"allowed_domains" yaml:"allowed_domains"`
-	Regex           *string  `json:"regex" yaml:"regex"`
+	Regex           *string  `json:"regex,omitempty" yaml:"regex,omitempty"`
+	// TODO: add compiled regex for performance
 }
 
 func (r *EmailRules) Validate(i any) error {
 	err := NewValidationError()
 
-	if i == nil && r.Required {
-		err.AddError(BaseRuleNameRequired, r.Required, i, FieldIsRequired)
-		return err
+	if i == nil {
+		if r.Required {
+			err.AddError(BaseRuleNameRequired, r.Required, i, FieldIsRequired)
+			return err
+		}
+		return nil
 	}
 
 	if ptr, ok := i.(*string); ok {
-		if ptr == nil && r.Required {
-			err.AddError(BaseRuleNameRequired, r.Required, i, FieldIsRequired)
-			return err
+		if ptr == nil {
+			if r.Required {
+				err.AddError(BaseRuleNameRequired, r.Required, i, FieldIsRequired)
+				return err
+			}
+			return nil
 		}
 		i = *ptr
 	}
@@ -51,9 +59,12 @@ func (r *EmailRules) Validate(i any) error {
 		return err
 	}
 
-	if r.Required && val == "" {
-		err.AddError(BaseRuleNameRequired, r.Required, i, FieldIsRequired)
-		return err
+	if val == "" {
+		if r.Required {
+			err.AddError(BaseRuleNameRequired, r.Required, i, FieldIsRequired)
+			return err
+		}
+		return nil
 	}
 
 	if r.Strategy != "" {
@@ -87,7 +98,9 @@ func (r *EmailRules) Validate(i any) error {
 	}
 
 	if r.Regex != nil {
-		if !matchRegex(val) {
+		// TODO: compilation will be removed to avoid performance issues
+		re, compileErr := regexp.Compile(*r.Regex)
+		if compileErr == nil && !re.MatchString(val) {
 			err.AddError(EmailRuleNameRegexp, *r.Regex, i, "email does not match the regex pattern")
 		}
 	}
@@ -96,7 +109,7 @@ func (r *EmailRules) Validate(i any) error {
 		return err
 	}
 
-	return err
+	return nil
 }
 
 func matchRegex(value string) bool {

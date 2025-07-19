@@ -10,7 +10,7 @@ func TestIPRules(t *testing.T) {
 	tests := []struct {
 		name    string
 		rules   IPRules
-		value   interface{}
+		value   any
 		wantErr bool
 	}{
 		// Basic validation tests
@@ -25,6 +25,18 @@ func TestIPRules(t *testing.T) {
 			rules:   IPRules{BaseRules: BaseRules{Required: true}},
 			value:   "",
 			wantErr: true,
+		},
+		{
+			name:    "empty string ptr when required",
+			rules:   IPRules{BaseRules: BaseRules{Required: true}},
+			value:   nil,
+			wantErr: true,
+		},
+		{
+			name:    "empty string ptr when not required",
+			rules:   IPRules{BaseRules: BaseRules{Required: false}},
+			value:   nil,
+			wantErr: false,
 		},
 		{
 			name:    "non-string value",

@@ -19,17 +19,20 @@ func (r *IntRules) Validate(i any) error {
 	if i == nil {
 		if r.Required {
 			err.AddError(BaseRuleNameRequired, r.Required, i, FieldIsRequired)
+			return err
 		}
-		return err
+		return nil
 	}
 
 	if ptr, ok := i.(*int); ok {
 		if ptr == nil {
 			if r.Required {
 				err.AddError(BaseRuleNameRequired, r.Required, i, FieldIsRequired)
+				return err
 			}
-			return err
+			return nil
 		}
+		i = *ptr
 	}
 
 	val, ok := i.(int)

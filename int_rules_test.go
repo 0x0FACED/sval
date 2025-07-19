@@ -47,6 +47,19 @@ func TestIntRules(t *testing.T) {
 			}(),
 		},
 		{
+			name: "nil input when not required",
+			rules: IntRules{
+				BaseRules: BaseRules{
+					Required: false,
+				},
+				Min: nil,
+				Max: nil,
+			},
+			input:    nil,
+			wantErr:  false,
+			expected: nil,
+		},
+		{
 			name: "value below minimum",
 			rules: IntRules{
 				BaseRules: BaseRules{
