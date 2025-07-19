@@ -182,13 +182,25 @@ func parseStringRules(params map[string]any) (*StringRules, error) {
 
 	if v, ok := params[StringRuleNameRegex]; ok {
 		if regex, ok := v.(string); ok {
-			rules.Regex = regex
+			rules.Regex = &regex
 		}
 	}
 
-	if v, ok := params[StringRuleNameAlphanum]; ok {
-		if alphanum, ok := v.(bool); ok {
-			rules.Alphanum = alphanum
+	if v, ok := params[StringRuleNameOnlyDigits]; ok {
+		if onlyDigits, ok := v.(bool); ok {
+			rules.OnlyDigits = onlyDigits
+		}
+	}
+
+	if v, ok := params[StringRuleNameOnlyLetters]; ok {
+		if onlyLetters, ok := v.(bool); ok {
+			rules.OnlyLetters = onlyLetters
+		}
+	}
+
+	if v, ok := params[StringRuleNameNoWhitespace]; ok {
+		if noWhitespace, ok := v.(bool); ok {
+			rules.OnlyLetters = noWhitespace
 		}
 	}
 
