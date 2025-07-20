@@ -362,11 +362,10 @@ func TestIPRules(t *testing.T) {
 			f, ok := tt.value.(func() *netip.Addr)
 			if ok {
 				tt.value = f()
-			} else {
-				f, ok := tt.value.(func() *net.IP)
-				if ok {
-					tt.value = f()
-				}
+			}
+			f2, ok := tt.value.(func() *net.IP)
+			if ok {
+				tt.value = f2()
 			}
 			err := tt.rules.Validate(tt.value)
 			if tt.wantErr {
