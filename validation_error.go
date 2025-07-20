@@ -2,7 +2,6 @@ package sval
 
 import (
 	"encoding/json"
-	"strings"
 )
 
 type ValidationError struct {
@@ -19,12 +18,11 @@ type valError struct {
 
 // JSON formatted as string
 func (e *ValidationError) Error() string {
-	var sb strings.Builder
-	if json.NewEncoder(&sb).Encode(e) != nil {
-		return "error encoding validation errors"
+	data, err := json.Marshal(e)
+	if err != nil {
+		return "error encoding validation errors: " + err.Error()
 	}
-
-	return sb.String()
+	return string(data)
 }
 
 func (e *ValidationError) AddError(rule string, ruleValue, provided any, message string) {
