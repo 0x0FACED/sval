@@ -1,6 +1,8 @@
 package sval
 
 import (
+	"net"
+	"net/netip"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -14,6 +16,42 @@ func TestIPRules(t *testing.T) {
 		wantErr bool
 	}{
 		// Basic validation tests
+		{
+			name:    "empty string when not required",
+			rules:   IPRules{BaseRules: BaseRules{Required: false}},
+			value:   "",
+			wantErr: false,
+		},
+		{
+			name:    "ip in net.IP format",
+			rules:   IPRules{BaseRules: BaseRules{Required: false}, AllowPrivate: true},
+			value:   net.IPv4(192, 168, 0, 1),
+			wantErr: false,
+		},
+		{
+			name:    "ip in netip.Addr format",
+			rules:   IPRules{BaseRules: BaseRules{Required: false}, AllowPrivate: true},
+			value:   netip.AddrFrom4([4]byte{192, 168, 0, 1}),
+			wantErr: false,
+		},
+		{
+			name:  "ip in *net.IP format",
+			rules: IPRules{BaseRules: BaseRules{Required: false}, AllowPrivate: true},
+			value: func() *net.IP {
+				ip := net.IPv4(192, 168, 0, 1)
+				return &ip
+			},
+			wantErr: false,
+		},
+		{
+			name:  "ip in *netip.Addr format",
+			rules: IPRules{BaseRules: BaseRules{Required: false}, AllowPrivate: true},
+			value: func() *netip.Addr {
+				ip := netip.AddrFrom4([4]byte{192, 168, 0, 1})
+				return &ip
+			},
+			wantErr: false,
+		},
 		{
 			name:    "empty string when not required",
 			rules:   IPRules{BaseRules: BaseRules{Required: false}},
@@ -321,6 +359,15 @@ func TestIPRules(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			f, ok := tt.value.(func() *netip.Addr)
+			if ok {
+				tt.value = f()
+			} else {
+				f, ok := tt.value.(func() *net.IP)
+				if ok {
+					tt.value = f()
+				}
+			}
 			err := tt.rules.Validate(tt.value)
 			if tt.wantErr {
 				assert.Error(t, err, "Expected error for %s with value %v", tt.name, tt.value)

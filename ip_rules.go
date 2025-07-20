@@ -33,15 +33,65 @@ func (r *IPRules) Validate(i any) error {
 		return nil
 	}
 
-	if ptr, ok := i.(*string); ok {
-		if ptr == nil {
+	switch v := i.(type) {
+	case *string:
+		if v == nil {
 			if r.Required {
 				err.AddError(BaseRuleNameRequired, r.Required, i, FieldIsRequired)
 				return err
 			}
 			return nil
 		}
-		i = *ptr
+		i = *v
+	case string:
+		break
+	case net.IP:
+		if v == nil {
+			if r.Required {
+				err.AddError(BaseRuleNameRequired, r.Required, i, FieldIsRequired)
+				return err
+			}
+			return nil
+		}
+		i = v.String()
+	case netip.Addr:
+		empty := netip.Addr{}
+		if v == empty {
+			if r.Required {
+				err.AddError(BaseRuleNameRequired, r.Required, i, FieldIsRequired)
+				return err
+			}
+			return nil
+		}
+		i = v.String()
+	case *net.IP:
+		if v == nil {
+			if r.Required {
+				err.AddError(BaseRuleNameRequired, r.Required, i, FieldIsRequired)
+				return err
+			}
+			return nil
+		}
+		if *v == nil {
+			if r.Required {
+				err.AddError(BaseRuleNameRequired, r.Required, i, FieldIsRequired)
+				return err
+			}
+			return nil
+		}
+		i = (*v).String()
+	case *netip.Addr:
+		if v == nil {
+			if r.Required {
+				err.AddError(BaseRuleNameRequired, r.Required, i, FieldIsRequired)
+				return err
+			}
+			return nil
+		}
+		i = v.String()
+	default:
+		err.AddError(BaseRuleNameType, TypeIP, i, "value must be a string or net.IP or netip.Addr or ptr of them")
+		return err
 	}
 
 	val, ok := i.(string)
