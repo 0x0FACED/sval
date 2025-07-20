@@ -432,7 +432,7 @@ Email type can define next rules:
 
 - [x] String
 - [x] Email
-- [ ] IP
+- [x] IP
 - [x] Int
 - [x] Float
 - [ ] Mac
