@@ -105,6 +105,7 @@ const (
 	TypeInt      RuleType = "int"
 	TypeFloat    RuleType = "float"
 	TypeIP       RuleType = "ip"
+	TypeMAC               = "mac"
 )
 
 type RuleConfig struct {
@@ -139,6 +140,8 @@ func createRuleSet(cfg RuleConfig) (RuleSet, error) {
 		return parsePasswordRules(cfg.Params)
 	case string(TypeInt):
 		return parseIntRules(cfg.Params)
+	case string(TypeFloat):
+		return parseFloatRules(cfg.Params)
 	case string(TypeIP):
 		return parseIPRules(cfg.Params)
 	default:
@@ -159,6 +162,7 @@ func toInt(val any) (int, bool) {
 	}
 }
 
+// TODO: add validating parsed rules
 func parseStringRules(params map[string]any) (*StringRules, error) {
 	rules := &StringRules{}
 
@@ -207,6 +211,7 @@ func parseStringRules(params map[string]any) (*StringRules, error) {
 	return rules, nil
 }
 
+// TODO: add validating parsed rules
 func parseEmailRules(params map[string]any) (*EmailRules, error) {
 	rules := &EmailRules{}
 
@@ -262,6 +267,7 @@ func parseEmailRules(params map[string]any) (*EmailRules, error) {
 	return rules, nil
 }
 
+// TODO: add validating parsed rules
 func parsePasswordRules(params map[string]any) (*PasswordRules, error) {
 	rules := &PasswordRules{}
 
@@ -310,6 +316,7 @@ func parsePasswordRules(params map[string]any) (*PasswordRules, error) {
 	return rules, nil
 }
 
+// TODO: add validating parsed rules
 func parseIntRules(params map[string]any) (RuleSet, error) {
 	rules := &IntRules{}
 
@@ -334,9 +341,74 @@ func parseIntRules(params map[string]any) (RuleSet, error) {
 	return rules, nil
 }
 
-// TODO: Implement parseIPRules function
+// TODO: add validating parsed rules
+func parseFloatRules(params map[string]any) (RuleSet, error) {
+	rules := &FloatRules{}
+
+	if v, ok := params[BaseRuleNameRequired]; ok {
+		if required, ok := v.(bool); ok {
+			rules.Required = required
+		}
+	}
+
+	if v, ok := params[FloatRuleNameMin]; ok {
+		if min, ok := v.(float64); ok {
+			rules.Min = &min
+		}
+	}
+
+	if v, ok := params[FloatRuleNameMax]; ok {
+		if max, ok := v.(float64); ok {
+			rules.Max = &max
+		}
+	}
+
+	return rules, nil
+}
+
+// TODO: add validating parsed rules
 func parseIPRules(params map[string]any) (RuleSet, error) {
-	return &IPRules{}, nil
+	rules := &IPRules{}
+
+	if v, ok := params[BaseRuleNameRequired]; ok {
+		if required, ok := v.(bool); ok {
+			rules.Required = required
+		}
+	}
+
+	if v, ok := params[IPRuleNameVersion]; ok {
+		if version, ok := v.(int); ok {
+			rules.Version = version
+		}
+	}
+
+	if v, ok := params[IPRuleNameAllowPrivate]; ok {
+		if private, ok := v.(bool); ok {
+			rules.AllowPrivate = private
+		}
+	}
+
+	if v, ok := params[IPRuleNameAllowedSubnets]; ok {
+		if subnets, ok := v.([]any); ok {
+			for _, d := range subnets {
+				if domain, ok := d.(string); ok {
+					rules.AllowedSubnets = append(rules.AllowedSubnets, domain)
+				}
+			}
+		}
+	}
+
+	if v, ok := params[IPRuleNameExcludedSubnets]; ok {
+		if subnets, ok := v.([]any); ok {
+			for _, d := range subnets {
+				if domain, ok := d.(string); ok {
+					rules.ExcludedSubnets = append(rules.ExcludedSubnets, domain)
+				}
+			}
+		}
+	}
+
+	return rules, nil
 }
 
 type validationContext struct {

@@ -265,8 +265,19 @@ func TestCreateRuleSet(t *testing.T) {
 			cfg: RuleConfig{
 				Type: "string",
 				Params: map[string]any{
-					"required": true,
-					"min_len":  5,
+					"required":      true,
+					"min_len":       5,
+					"max_len":       15,
+					"only_digits":   true,
+					"only_letters":  false,
+					"no_whitespace": true,
+					"trim_space":    true,
+					"starts_with":   "test",
+					"ends_with":     "end",
+					"contains":      []string{"example", "test"},
+					"not_contains":  []string{"invalid"},
+					"one_of":        []string{"option1", "option2"},
+					"min_entropy":   2.0,
 				},
 			},
 			wantErr: false,
@@ -288,8 +299,34 @@ func TestCreateRuleSet(t *testing.T) {
 				Type: "int",
 				Params: map[string]any{
 					"required": true,
+					"min":      0,
+					"max":      100,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "float rules",
+			cfg: RuleConfig{
+				Type: "float",
+				Params: map[string]any{
+					"required": true,
 					"min":      float64(0),
 					"max":      float64(100),
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "ip rules",
+			cfg: RuleConfig{
+				Type: "ip",
+				Params: map[string]any{
+					"required":         true,
+					"version":          4,
+					"allow_private":    true,
+					"allowed_subnets":  []string{"192.168.0.0/16"},
+					"excluded_subnets": []string{"172.18.0.0/24"},
 				},
 			},
 			wantErr: false,
