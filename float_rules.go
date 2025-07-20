@@ -16,16 +16,23 @@ type FloatRules struct {
 func (r *FloatRules) Validate(i any) error {
 	err := NewValidationError()
 
-	if i == nil && r.Required {
-		err.AddError(BaseRuleNameRequired, r.Required, i, FieldIsRequired)
-		return err
-	}
-
-	if ptr, ok := i.(*float64); ok {
-		if ptr == nil && r.Required {
+	if i == nil {
+		if r.Required {
 			err.AddError(BaseRuleNameRequired, r.Required, i, FieldIsRequired)
 			return err
 		}
+		return nil
+	}
+
+	if ptr, ok := i.(*float64); ok {
+		if ptr == nil {
+			if r.Required {
+				err.AddError(BaseRuleNameRequired, r.Required, i, FieldIsRequired)
+				return err
+			}
+			return nil
+		}
+		i = *ptr
 	}
 
 	val, ok := i.(float64)
