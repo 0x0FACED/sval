@@ -94,6 +94,7 @@ func (r *IPRules) Validate(i any) error {
 		return err
 	}
 
+	// todo: remove
 	val, ok := i.(string)
 	if !ok {
 		err.AddError(BaseRuleNameType, TypeIP, i, "value must be a string")
