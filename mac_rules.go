@@ -3,6 +3,7 @@ package sval
 import (
 	"net"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -84,7 +85,13 @@ func (r *MACRules) Validate(i any) error {
 		}
 		i = *v
 	case string:
-		break
+		if v == "" {
+			if r.Required {
+				err.AddError(BaseRuleNameRequired, r.Required, i, FieldIsRequired)
+				return err
+			}
+			return nil
+		}
 	case net.HardwareAddr:
 		if v == nil {
 			if r.Required {
@@ -121,17 +128,13 @@ func (r *MACRules) Validate(i any) error {
 		return err
 	}
 
-	if val == "" {
-		if r.Required {
-			err.AddError(BaseRuleNameRequired, r.Required, i, FieldIsRequired)
-			return err
-		}
-		return nil
-	}
-
 	normalized := r.normalizeMAC(val)
 	if normalized == "" {
-		err.AddError(MACRuleNameFormat, r.Formats, i, "invalid MAC address format")
+		if len(r.Formats) > 0 {
+			err.AddError(MACRuleNameFormat, r.Formats, i, "invalid MAC address format")
+			return err
+		}
+		err.AddError(MACRuleNameFormat, MACFormatAny, i, "invalid MAC address format")
 		return err
 	}
 
@@ -145,22 +148,14 @@ func (r *MACRules) Validate(i any) error {
 
 	if len(r.Formats) > 0 {
 		if !r.validateFormat(val) {
-			err.AddError(MACRuleNameFormat, r.Format, i, "incorrect MAC address format")
+			err.AddError(MACRuleNameFormat, r.Formats, i, "invalid MAC address format")
 			return err
 		}
 	}
 
-	hasSeparator := len(val) > len(normalized)
-	if len(r.Separators) > 0 {
-		if !r.validateSeparator(val) {
-			err.AddError(MACRuleNameSeparators, true, i, "MAC address must contain separators")
-			return err
-		}
-	}
-
-	if r.AllowCase != MACCaseAny {
+	if len(r.Cases) > 0 {
 		if !r.validateCase(val) {
-			err.AddError(MACRuleNameCase, r.AllowCase, i, "incorrect MAC address case")
+			err.AddError(MACRuleNameCase, r.Cases, i, "incorrect MAC address case")
 			return err
 		}
 	}
@@ -179,17 +174,17 @@ func (r *MACRules) Validate(i any) error {
 		}
 	}
 
-	if len(r.OUI) > 0 {
+	if len(r.OUIWhitelist) > 0 {
 		valid := false
 		oui := normalized[:6]
-		for _, prefix := range r.OUI {
+		for _, prefix := range r.OUIWhitelist {
 			if strings.EqualFold(oui, prefix) {
 				valid = true
 				break
 			}
 		}
 		if !valid {
-			err.AddError(MACRuleNameOUI, r.OUI, i, "MAC address OUI not in allowed list")
+			err.AddError(MACRuleNameOUI, r.OUIWhitelist, i, "MAC address OUI not in allowed list")
 			return err
 		}
 	}
@@ -203,15 +198,18 @@ func (r *MACRules) Validate(i any) error {
 		}
 	}
 
-	if isZeroMAC(normalized) && !r.AllowZero {
+	if isZeroMAC(normalized) && !(r.AllowZero != nil && *r.AllowZero) {
 		err.AddError(MACRuleNameAllowZero, false, i, "zero MAC address is not allowed")
 		return err
 	}
-	if isBroadcastMAC(normalized) && !r.AllowBroadcast {
-		err.AddError(MACRuleNameAllowBroad, false, i, "broadcast MAC address is not allowed")
-		return err
+	if isBroadcastMAC(normalized) {
+		if !(r.AllowBroadcast != nil && *r.AllowBroadcast) {
+			err.AddError(MACRuleNameAllowBroad, false, i, "broadcast MAC address is not allowed")
+			return err
+		}
+		return nil // If broadcast is allowed, we don't need to check multicast
 	}
-	if isMulticastMAC(normalized) && !r.AllowMulticast {
+	if isMulticastMAC(normalized) && !(r.AllowMulticast != nil && *r.AllowMulticast) {
 		err.AddError(MACRuleNameAllowMulti, false, i, "multicast MAC address is not allowed")
 		return err
 	}
@@ -230,28 +228,46 @@ func (r *MACRules) normalizeMAC(mac string) string {
 	return normalized
 }
 
-func (r *MACRules) validateSeparator(mac string) bool {
-
-}
-
 // TODO: remove regexp and use strings directly or move regexp compilation to global scope
 func (r *MACRules) validateFormat(mac string) bool {
-	switch r.Format {
-	case MACFormatColon:
-		return regexp.MustCompile("^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$").MatchString(mac)
-	case MACFormatHyphen:
-		return regexp.MustCompile("^([0-9A-Fa-f]{2}-){5}[0-9A-Fa-f]{2}$").MatchString(mac)
-	case MACFormatDot:
-		return regexp.MustCompile("^[0-9A-Fa-f]{4}.[0-9A-Fa-f]{4}.[0-9A-Fa-f]{4}$").MatchString(mac)
-	case MACFormatRaw:
-		return regexp.MustCompile("^[0-9A-Fa-f]{12}$").MatchString(mac)
-	default:
+	if slices.Contains(r.Formats, MACFormatAny) {
 		return true
 	}
+
+	formatMap := make(map[MACFormat]*regexp.Regexp)
+	formatMap[MACFormatColon] = regexp.MustCompile("^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$")
+	formatMap[MACFormatHyphen] = regexp.MustCompile("^([0-9A-Fa-f]{2}-){5}[0-9A-Fa-f]{2}$")
+	formatMap[MACFormatDot] = regexp.MustCompile("^[0-9A-Fa-f]{4}.[0-9A-Fa-f]{4}.[0-9A-Fa-f]{4}$")
+	formatMap[MACFormatRaw] = regexp.MustCompile("^[0-9A-Fa-f]{12}$")
+
+	for _, format := range r.Formats {
+		// in the future this check wont be necessary, because rules will be validated
+		reg, ok := formatMap[format]
+		if ok && reg.MatchString(mac) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (r *MACRules) validateCase(mac string) bool {
-	switch r.AllowCase {
+	// if any - always true
+	if slices.Contains(r.Cases, MACCaseAny) {
+		return true
+	}
+
+	for _, _case := range r.Cases {
+		if r.validateOneCase(mac, _case) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (r *MACRules) validateOneCase(mac string, _case MACCase) bool {
+	switch _case {
 	case MACCaseLower:
 		return mac == strings.ToLower(mac)
 	case MACCaseUpper:
@@ -265,7 +281,7 @@ func (r *MACRules) validateCase(mac string) bool {
 		}
 		return true
 	default:
-		return true
+		return false
 	}
 }
 
@@ -284,10 +300,6 @@ func (r *MACRules) validateType(mac string, typ MACAddressType) bool {
 		return (firstByte & 0x02) == 0
 	case MACTypeLocal:
 		return (firstByte & 0x02) == 2
-	case TypeNonZero:
-		return !isZeroMAC(mac)
-	case TypeNonBroad:
-		return !isBroadcastMAC(mac)
 	default:
 		return false
 	}
@@ -302,6 +314,10 @@ func isBroadcastMAC(mac string) bool {
 }
 
 func isMulticastMAC(mac string) bool {
+	// Don't treat broadcast as multicast
+	if isBroadcastMAC(mac) {
+		return false
+	}
 	b, _ := strconv.ParseInt(mac[:2], 16, 8)
 	return b&0x01 == 1
 }

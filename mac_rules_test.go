@@ -8,7 +8,6 @@ import (
 )
 
 func TestMACRules(t *testing.T) {
-	validMAC := "00:11:22:33:44:55"
 	tests := []struct {
 		name    string
 		rules   MACRules
@@ -51,7 +50,7 @@ func TestMACRules(t *testing.T) {
 		{
 			name: "valid colon format",
 			rules: MACRules{
-				Format: MACFormatColon,
+				Formats: []MACFormat{MACFormatColon},
 			},
 			value:   "00:11:22:33:44:55",
 			wantErr: false,
@@ -59,7 +58,7 @@ func TestMACRules(t *testing.T) {
 		{
 			name: "invalid colon format",
 			rules: MACRules{
-				Format: MACFormatColon,
+				Formats: []MACFormat{MACFormatColon},
 			},
 			value:   "00-11-22-33-44-55",
 			wantErr: true,
@@ -67,31 +66,55 @@ func TestMACRules(t *testing.T) {
 		{
 			name: "valid hyphen format",
 			rules: MACRules{
-				Format: MACFormatHyphen,
+				Formats: []MACFormat{MACFormatHyphen},
 			},
 			value:   "00-11-22-33-44-55",
 			wantErr: false,
 		},
 		{
+			name: "invalid hyphen format",
+			rules: MACRules{
+				Formats: []MACFormat{MACFormatHyphen},
+			},
+			value:   "00.11.22.33.44.55",
+			wantErr: true,
+		},
+		{
 			name: "valid dot format",
 			rules: MACRules{
-				Format: MACFormatDot,
+				Formats: []MACFormat{MACFormatDot},
 			},
 			value:   "0011.2233.4455",
 			wantErr: false,
 		},
 		{
+			name: "invalid dot format",
+			rules: MACRules{
+				Formats: []MACFormat{MACFormatDot},
+			},
+			value:   "00.11.22.33.44.55",
+			wantErr: true,
+		},
+		{
 			name: "valid raw format",
 			rules: MACRules{
-				Format: MACFormatRaw,
+				Formats: []MACFormat{MACFormatRaw},
 			},
 			value:   "001122334455",
 			wantErr: false,
 		},
 		{
+			name: "invalid raw format",
+			rules: MACRules{
+				Formats: []MACFormat{MACFormatRaw},
+			},
+			value:   "00:11:22:33:44:55",
+			wantErr: true,
+		},
+		{
 			name: "format any accepts all formats",
 			rules: MACRules{
-				Format: MACFormatAny,
+				Formats: []MACFormat{MACFormatAny},
 			},
 			value:   "00:11:22:33:44:55",
 			wantErr: false,
@@ -101,7 +124,7 @@ func TestMACRules(t *testing.T) {
 		{
 			name: "valid lower case",
 			rules: MACRules{
-				AllowCase: MACCaseLower,
+				Cases: []MACCase{MACCaseLower},
 			},
 			value:   "00:11:22:aa:bb:cc",
 			wantErr: false,
@@ -109,7 +132,7 @@ func TestMACRules(t *testing.T) {
 		{
 			name: "invalid lower case",
 			rules: MACRules{
-				AllowCase: MACCaseLower,
+				Cases: []MACCase{MACCaseLower},
 			},
 			value:   "00:11:22:AA:BB:CC",
 			wantErr: true,
@@ -117,45 +140,28 @@ func TestMACRules(t *testing.T) {
 		{
 			name: "valid upper case",
 			rules: MACRules{
-				AllowCase: MACCaseUpper,
+				Cases: []MACCase{MACCaseUpper},
 			},
 			value:   "00:11:22:AA:BB:CC",
 			wantErr: false,
 		},
 		{
+			name: "invalid upper case",
+			rules: MACRules{
+				Cases: []MACCase{MACCaseUpper},
+			},
+			value:   "00:11:22:aA:BB:CC",
+			wantErr: true,
+		},
+		{
 			name: "valid camel case",
 			rules: MACRules{
-				AllowCase: MACCaseCamel,
-				Format:    MACFormatDot,
+				// format must be any or dot
+				Formats: []MACFormat{MACFormatDot},
+				Cases:   []MACCase{MACCaseCamel},
 			},
 			value:   "0011.22AA.BBCC",
 			wantErr: false,
-		},
-
-		// Separator validation tests
-		{
-			name: "required separator present",
-			rules: MACRules{
-				RequireSep: true,
-			},
-			value:   "00:11:22:33:44:55",
-			wantErr: false,
-		},
-		{
-			name: "required separator missing",
-			rules: MACRules{
-				RequireSep: true,
-			},
-			value:   "001122334455",
-			wantErr: true,
-		},
-		{
-			name: "separator forbidden but present",
-			rules: MACRules{
-				RequireSep: false,
-			},
-			value:   "00:11:22:33:44:55",
-			wantErr: true,
 		},
 
 		// Type validation tests
@@ -170,7 +176,8 @@ func TestMACRules(t *testing.T) {
 		{
 			name: "valid multicast only",
 			rules: MACRules{
-				Types: []MACAddressType{MACTypeMulticast},
+				Types:          []MACAddressType{MACTypeMulticast},
+				AllowMulticast: ptr(true),
 			},
 			value:   "01:11:22:33:44:55",
 			wantErr: false,
@@ -194,17 +201,17 @@ func TestMACRules(t *testing.T) {
 		{
 			name: "valid non-zero",
 			rules: MACRules{
-				AllowZero: false,
+				AllowZero: ptr(false),
 			},
-			value:   validMAC,
+			value:   "00:11:22:33:44:55",
 			wantErr: false,
 		},
 		{
 			name: "valid non-broadcast",
 			rules: MACRules{
-				AllowBroadcast: false,
+				AllowBroadcast: ptr(false),
 			},
-			value:   validMAC,
+			value:   "00:11:22:33:44:55",
 			wantErr: false,
 		},
 
@@ -212,7 +219,7 @@ func TestMACRules(t *testing.T) {
 		{
 			name: "valid OUI",
 			rules: MACRules{
-				OUI: []string{"001122"},
+				OUIWhitelist: []string{"001122"},
 			},
 			value:   "00:11:22:33:44:55",
 			wantErr: false,
@@ -220,7 +227,7 @@ func TestMACRules(t *testing.T) {
 		{
 			name: "invalid OUI",
 			rules: MACRules{
-				OUI: []string{"AABBCC"},
+				OUIWhitelist: []string{"AABBCC"},
 			},
 			value:   "00:11:22:33:44:55",
 			wantErr: true,
@@ -228,7 +235,7 @@ func TestMACRules(t *testing.T) {
 		{
 			name: "multiple valid OUIs",
 			rules: MACRules{
-				OUI: []string{"001122", "AABBCC"},
+				OUIWhitelist: []string{"001122", "AABBCC"},
 			},
 			value:   "00:11:22:33:44:55",
 			wantErr: false,
@@ -256,7 +263,7 @@ func TestMACRules(t *testing.T) {
 		{
 			name: "zero MAC not allowed",
 			rules: MACRules{
-				AllowZero: false,
+				AllowZero: ptr(false),
 			},
 			value:   "00:00:00:00:00:00",
 			wantErr: true,
@@ -264,7 +271,7 @@ func TestMACRules(t *testing.T) {
 		{
 			name: "zero MAC allowed",
 			rules: MACRules{
-				AllowZero: true,
+				AllowZero: ptr(true),
 			},
 			value:   "00:00:00:00:00:00",
 			wantErr: false,
@@ -272,7 +279,7 @@ func TestMACRules(t *testing.T) {
 		{
 			name: "broadcast MAC not allowed",
 			rules: MACRules{
-				AllowBroadcast: false,
+				AllowBroadcast: ptr(false),
 			},
 			value:   "FF:FF:FF:FF:FF:FF",
 			wantErr: true,
@@ -280,7 +287,7 @@ func TestMACRules(t *testing.T) {
 		{
 			name: "broadcast MAC allowed",
 			rules: MACRules{
-				AllowBroadcast: true,
+				AllowBroadcast: ptr(true),
 			},
 			value:   "FF:FF:FF:FF:FF:FF",
 			wantErr: false,
@@ -288,7 +295,7 @@ func TestMACRules(t *testing.T) {
 		{
 			name: "multicast MAC not allowed",
 			rules: MACRules{
-				AllowMulticast: false,
+				AllowMulticast: ptr(false),
 			},
 			value:   "01:00:5E:00:00:00",
 			wantErr: true,
@@ -296,7 +303,7 @@ func TestMACRules(t *testing.T) {
 		{
 			name: "multicast MAC allowed",
 			rules: MACRules{
-				AllowMulticast: true,
+				AllowMulticast: ptr(true),
 			},
 			value:   "01:00:5E:00:00:00",
 			wantErr: false,
@@ -306,7 +313,7 @@ func TestMACRules(t *testing.T) {
 		{
 			name: "valid 6 octets",
 			rules: MACRules{
-				MaxOctets: 6,
+				MaxOctets: ptr(6),
 			},
 			value:   "00:11:22:33:44:55",
 			wantErr: false,
@@ -314,7 +321,7 @@ func TestMACRules(t *testing.T) {
 		{
 			name: "invalid 8 octets when max is 6",
 			rules: MACRules{
-				MaxOctets: 6,
+				MaxOctets: ptr(6),
 			},
 			value:   "00:11:22:33:44:55:66:77",
 			wantErr: true,
@@ -344,11 +351,11 @@ func TestMACRules(t *testing.T) {
 		{
 			name: "multiple valid rules",
 			rules: MACRules{
-				Format:    MACFormatColon,
-				AllowCase: MACCaseUpper,
-				Types:     []MACAddressType{MACTypeUnicast, MACTypeUniversal},
-				OUI:       []string{"001122"},
-				MaxOctets: 6,
+				Formats:      []MACFormat{MACFormatColon},
+				Cases:        []MACCase{MACCaseUpper},
+				Types:        []MACAddressType{MACTypeUnicast, MACTypeUniversal},
+				OUIWhitelist: []string{"001122"},
+				MaxOctets:    ptr(6),
 			},
 			value:   "00:11:22:33:44:55",
 			wantErr: false,
@@ -356,11 +363,11 @@ func TestMACRules(t *testing.T) {
 		{
 			name: "multiple rules with one failure",
 			rules: MACRules{
-				Format:    MACFormatColon,
-				AllowCase: MACCaseUpper,
-				Types:     []MACAddressType{MACTypeMulticast}, // This should fail for a unicast address
-				OUI:       []string{"001122"},
-				MaxOctets: 6,
+				Formats:      []MACFormat{MACFormatColon},
+				Cases:        []MACCase{MACCaseUpper},
+				Types:        []MACAddressType{MACTypeMulticast}, // This should fail for a unicast address
+				OUIWhitelist: []string{"001122"},
+				MaxOctets:    ptr(6),
 			},
 			value:   "00:11:22:33:44:55",
 			wantErr: true,
