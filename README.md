@@ -404,6 +404,8 @@ Tag `sval` shows validator that this field must be validated. `user.name` tells 
 2. `int`
 3. `float`
 4. `email`
+5. `ip`
+6. `mac`
 
 ### Base rules
 
@@ -435,7 +437,8 @@ Email type can define next rules:
 - [x] IP
 - [x] Int
 - [x] Float
-- [ ] Mac
+- [x] Mac
+- [ ] passwords
 - [ ] Date and time
 - [ ] geo
 - [ ] url
