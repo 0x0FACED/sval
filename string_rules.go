@@ -183,8 +183,9 @@ func entropy(s string) float64 {
 	}
 
 	var entropy float64
+	length := float64(utf8.RuneCountInString(s))
 	for _, count := range frequency {
-		probability := float64(count) / float64(len(s))
+		probability := float64(count) / length
 		if probability > 0 {
 			entropy -= probability * math.Log2(probability)
 		}

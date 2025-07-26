@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"gopkg.in/yaml.v3"
 )
@@ -271,45 +272,109 @@ func parseEmailRules(params map[string]any) (*EmailRules, error) {
 func parsePasswordRules(params map[string]any) (*PasswordRules, error) {
 	rules := &PasswordRules{}
 
-	if v, ok := params["required"]; ok {
+	if v, ok := params[BaseRuleNameRequired]; ok {
 		if required, ok := v.(bool); ok {
 			rules.Required = required
 		}
 	}
 
-	if v, ok := params["min_len"]; ok {
+	if v, ok := params[PasswordRuleNameMinLen]; ok {
 		if minLen, ok := toInt(v); ok {
 			rules.MinLen = minLen
 		}
 	}
 
-	if v, ok := params["max_len"]; ok {
+	if v, ok := params[PasswordRuleNameMaxLen]; ok {
 		if maxLen, ok := toInt(v); ok {
 			rules.MaxLen = maxLen
 		}
 	}
 
-	if v, ok := params["require_upper"]; ok {
-		if require, ok := v.(bool); ok {
-			rules.RequireUpper = require
+	if v, ok := params[PasswordRuleNameMinUpper]; ok {
+		if minUpper, ok := v.(int); ok {
+			rules.MinUpper = minUpper
 		}
 	}
 
-	if v, ok := params["require_lower"]; ok {
-		if require, ok := v.(bool); ok {
-			rules.RequireLower = require
+	if v, ok := params[PasswordRuleNameMinLower]; ok {
+		if minLower, ok := v.(int); ok {
+			rules.MinLower = minLower
 		}
 	}
 
-	if v, ok := params["require_number"]; ok {
-		if require, ok := v.(bool); ok {
-			rules.RequireNumber = require
+	if v, ok := params[PasswordRuleNameMinNumbers]; ok {
+		if minNumbers, ok := v.(int); ok {
+			rules.MinNumbers = minNumbers
 		}
 	}
 
-	if v, ok := params["require_special"]; ok {
-		if require, ok := v.(bool); ok {
-			rules.RequireSpecial = require
+	if v, ok := params[PasswordRuleNameMinSpecial]; ok {
+		if minSpecial, ok := v.(int); ok {
+			rules.MinSpecial = minSpecial
+		}
+	}
+
+	if v, ok := params[PasswordRuleNameSpecialChars]; ok {
+		if specialChars, ok := v.([]any); ok {
+			for _, c := range specialChars {
+				if char, ok := c.(rune); ok {
+					rules.SpecialChars = append(rules.SpecialChars, char)
+				} else if str, ok := c.(string); ok && utf8.RuneCountInString(str) == 1 {
+					rules.SpecialChars = append(rules.SpecialChars, []rune(str)[0])
+				}
+			}
+		}
+	}
+
+	if v, ok := params[PasswordRuleNameAllowedChars]; ok {
+		if allowedChars, ok := v.([]any); ok {
+			for _, c := range allowedChars {
+				if char, ok := c.(rune); ok {
+					rules.AllowedChars = append(rules.AllowedChars, char)
+				} else if str, ok := c.(string); ok && utf8.RuneCountInString(str) == 1 {
+					rules.AllowedChars = append(rules.AllowedChars, []rune(str)[0])
+				}
+			}
+		}
+	}
+
+	if v, ok := params[PasswordRuleNameDisallowedChars]; ok {
+		if disallowedChars, ok := v.([]any); ok {
+			for _, c := range disallowedChars {
+				if char, ok := c.(rune); ok {
+					rules.DisallowedChars = append(rules.DisallowedChars, char)
+				} else if str, ok := c.(string); ok && utf8.RuneCountInString(str) == 1 {
+					rules.DisallowedChars = append(rules.DisallowedChars, []rune(str)[0])
+				}
+			}
+		}
+	}
+
+	if v, ok := params[PasswordRuleNameMaxRepeatRun]; ok {
+		if maxRepeat, ok := toInt(v); ok {
+			rules.MaxRepeatRun = maxRepeat
+		}
+	}
+
+	if v, ok := params[PasswordRuleNameDetectLinearPatterns]; ok {
+		if detectLinearPatterns, ok := v.(bool); ok {
+			rules.DetectLinearPatterns = detectLinearPatterns
+		}
+	}
+
+	if v, ok := params[PasswordRuleNameBlacklist]; ok {
+		if blacklist, ok := v.([]any); ok {
+			for _, b := range blacklist {
+				if blacklisted, ok := b.(string); ok {
+					rules.Blacklist = append(rules.Blacklist, blacklisted)
+				}
+			}
+		}
+	}
+
+	if v, ok := params[PasswordRuleNameMinEntropy]; ok {
+		if minEntropy, ok := v.(float64); ok {
+			rules.MinEntropy = minEntropy
 		}
 	}
 
