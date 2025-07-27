@@ -1,0 +1,55 @@
+version: 1
+rules:
+  user[].id: # user[].id is an array of users. Rules apply to each user in the array
+    type: string # type of the field is string
+    params:
+      required: true # must be provided
+      min_len: 10 # length of ID minimum is 10 chars
+      max_len: 20 # max length is 20 chars
+      only_digits: false # digits allowed, but not only digits
+      only_letters: false # letters allowed, but not only letters
+      no_whitespace: true # no whitespace allowed
+      starts_with: "UID-" # all IDs must start with "UID-"
+      ends_with: "-END" # all IDs must end with "-END"
+      contains: ["TEST", "EXAMPLE"] # all IDs must contains "TEST" or "EXAMPLE"
+      not_contains: ["INVALID", "FORBIDDEN"] # all IDs must not contain "INVALID" or "FORBIDDEN"
+
+  user[].name:
+    type: string
+    params:
+      required: true # name field must be provided
+      min_len: 2 # Length must be more than 2 characters
+      only_letters: true # Digits NOT allowed
+
+  user[].age:
+    type: int
+    params:
+      required: true # age field must be provided
+      min: 18 # Age must be more than 18
+      max: 100 # Age must be less than 100
+
+  user[].password:
+    type: password # type of the field is password (string type in fact)
+    params:
+      required: true # name field must be provided
+      min_len: 6 # Length must be more than 6 characters
+      max_len: 20 # Length must be less than 20 characters
+      min_upper: 1 # At least one uppercase letter
+      min_lower: 1 # At least one lowercase letter
+      min_digits: 1 # At least one digit
+      min_special: 1 # At least one special character
+      special_chars: "!@#$%^&*()-_=+/" # PAssword must contain at least one of these special characters
+      allowed_chars: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+" # Allowed characters in password
+      disallowed_chars: " " # Disallowed characters in password
+      max_repeat_run: 1 # No more than one character can be repeated in a row
+      detect_linear_patterns: true # Detect linear patterns like "1234", "abcd", etc. NOY IMPLEMENTED YET
+      blacklist: ["123456", "password", "qwerty"] # Passwords from this list are not allowed
+      min_entropy: 3.0 # Minimum entropy of the password
+
+  user[].email:
+    type: email
+    params:
+      required: true
+      strategy: "rfc5321" # Email validation strategy, can be "rfc5321" or "rfc5322" or "html"
+      excluded_domains: ["example.com", "test.com"]
+      allowed_domains: ["example.org", "test.org"] # Allowed domains for email
