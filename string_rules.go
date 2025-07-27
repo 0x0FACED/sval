@@ -137,6 +137,8 @@ func (r *StringRules) Validate(i any) error {
 				// rule value - substr or full slice?
 				err.AddError(StringRuleNameContains, substr, i, "string must contain specified substrings")
 				break
+			} else {
+				break // if one of them is found, we can break
 			}
 		}
 	}

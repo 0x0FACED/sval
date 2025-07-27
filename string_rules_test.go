@@ -227,7 +227,7 @@ func TestStringRules(t *testing.T) {
 				Contains: []string{"test", "foo"},
 			},
 			value:   "testing_string",
-			wantErr: true,
+			wantErr: false,
 		},
 
 		// Not contains tests
