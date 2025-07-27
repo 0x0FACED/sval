@@ -24,7 +24,8 @@ type validator struct {
 }
 
 type ValidatorConfig struct {
-	Rules map[string]RuleConfig `yaml:"rules" json:"rules"`
+	Version int                   `yaml:"version" json:"version"`
+	Rules   map[string]RuleConfig `yaml:"rules" json:"rules"`
 }
 
 type ConfigLoader interface {
@@ -105,7 +106,7 @@ const (
 	TypeInt      RuleType = "int"
 	TypeFloat    RuleType = "float"
 	TypeIP       RuleType = "ip"
-	TypeMAC               = "mac"
+	TypeMAC      RuleType = "mac"
 )
 
 type RuleConfig struct {
@@ -144,6 +145,8 @@ func createRuleSet(cfg RuleConfig) (RuleSet, error) {
 		return parseFloatRules(cfg.Params)
 	case string(TypeIP):
 		return parseIPRules(cfg.Params)
+	case string(TypeMAC):
+		return parseMACRules(cfg.Params)
 	default:
 		return nil, fmt.Errorf("unknown rule type: %s", cfg.Type)
 	}
@@ -157,6 +160,12 @@ func toInt(val any) (int, bool) {
 		return int(v), true
 	case float32:
 		return int(v), true
+	case *int:
+		return *v, true
+	case *float32:
+		return int(*v), true
+	case *float64:
+		return int(*v), true
 	default:
 		return 0, false
 	}
@@ -253,6 +262,96 @@ func parseStringRules(params map[string]any) (*StringRules, error) {
 	if v, ok := params[StringRuleNameMinEntropy]; ok {
 		if minEntropy, ok := v.(float64); ok {
 			rules.MinEntropy = minEntropy
+		}
+	}
+
+	return rules, nil
+}
+
+func parseMACRules(params map[string]any) (*MACRules, error) {
+	rules := &MACRules{}
+
+	if v, ok := params[BaseRuleNameRequired]; ok {
+		if required, ok := v.(bool); ok {
+			rules.Required = required
+		}
+	}
+
+	if v, ok := params[MACRuleNameFormat]; ok {
+		formats, err := ConvertToStringArray(v)
+		if err != nil {
+			return nil, fmt.Errorf("invalid formats values: %w", err)
+		}
+		rules.Formats = formats
+	}
+
+	if v, ok := params[MACRuleNameCase]; ok {
+		cases, err := ConvertToStringArray(v)
+		if err != nil {
+			return nil, fmt.Errorf("invalid cases values: %w", err)
+		}
+		rules.Cases = cases
+	}
+
+	if v, ok := params[MACRuleNameType]; ok {
+		types, err := ConvertToStringArray(v)
+		if err != nil {
+			return nil, fmt.Errorf("invalid types values: %w", err)
+		}
+		rules.Types = types
+	}
+
+	if v, ok := params[MACRuleNameAllowZero]; ok {
+		if allowZero, ok := v.(bool); ok {
+			rules.AllowZero = &allowZero
+		} else {
+			if allowZero, ok := v.(*bool); ok {
+				rules.AllowZero = allowZero
+			}
+		}
+	}
+
+	if v, ok := params[MACRuleNameAllowBroad]; ok {
+		if allowBroad, ok := v.(bool); ok {
+			rules.AllowBroadcast = &allowBroad
+		} else {
+			if allowBroad, ok := v.(*bool); ok {
+				rules.AllowBroadcast = allowBroad
+			}
+		}
+	}
+
+	if v, ok := params[MACRuleNameAllowMulti]; ok {
+		if allowMulti, ok := v.(bool); ok {
+			rules.AllowMulticast = &allowMulti
+		} else {
+			if allowMulti, ok := v.(*bool); ok {
+				rules.AllowMulticast = allowMulti
+			}
+		}
+	}
+
+	if v, ok := params[MACRuleNameOUI]; ok {
+		oui, err := ConvertToStringArray(v)
+		if err != nil {
+			return nil, fmt.Errorf("invalid oui values: %w", err)
+		}
+		rules.OUIWhitelist = oui
+	}
+
+	if v, ok := params[MACRuleNameBlacklist]; ok {
+		blacklist, err := ConvertToStringArray(v)
+		if err != nil {
+			return nil, fmt.Errorf("invalid not contains values: %w", err)
+		}
+		rules.Blacklist = blacklist
+	}
+
+	if v, ok := params[MACRuleNameMaxOctets]; ok {
+		if maxOctets, ok := toInt(v); ok {
+			rules.MaxOctets = &maxOctets
+		} else {
+			return nil, fmt.Errorf("invalid max octets value: %v", v)
 		}
 	}
 
