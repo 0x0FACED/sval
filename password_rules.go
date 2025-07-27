@@ -86,10 +86,10 @@ func (r *PasswordRules) Validate(i any) error {
 
 	length := utf8.RuneCountInString(val)
 	if r.MinLen > 0 && length < r.MinLen {
-		err.AddError(StringRuleNameMinLen, r.MinLen, i, "string too short")
+		err.AddError(PasswordRuleNameMinLen, r.MinLen, i, "password too short")
 	}
 	if r.MaxLen > 0 && length > r.MaxLen {
-		err.AddError(StringRuleNameMinLen, r.MinLen, i, "string too short")
+		err.AddError(PasswordRuleNameMaxLen, r.MaxLen, i, "password too long")
 	}
 
 	var (

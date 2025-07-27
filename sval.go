@@ -617,21 +617,26 @@ func (v *validator) validateRecursive(val reflect.Value, ctx validationContext) 
 	normalized := normalizePath(ctx.Path)
 	ruleSet, hasRules := v.rules[normalized]
 
+	errs := NewValidationError()
+
 	if val.Kind() == reflect.Ptr {
 		if val.IsNil() && hasRules {
 			if err := ruleSet.Validate(nil); err != nil {
+				verr, ok := err.(*ValidationError)
+				if ok {
+					verr.AddContextToErrors(ctx.Path)
+					errs.AppendError(verr)
+					return errs
+				}
 				return err
 			}
-
 			return nil
 		}
-
 		val = val.Elem()
 	}
 
 	switch val.Kind() {
 	case reflect.Struct:
-		errs := NewValidationError()
 		typ := val.Type()
 		for i := 0; i < val.NumField(); i++ {
 			field := typ.Field(i)
@@ -649,7 +654,12 @@ func (v *validator) validateRecursive(val reflect.Value, ctx validationContext) 
 			currentCtx := validationContext{Path: currentPath}
 
 			if err := v.validateRecursive(fieldValue, currentCtx); err != nil {
-				errs.AppendError(err.(*ValidationError))
+				if verr, ok := err.(*ValidationError); ok {
+					errs.AppendError(verr)
+				} else {
+					errs.AddError("unknown", nil, nil, err.Error())
+					errs.AddContextToErrors(currentPath)
+				}
 			}
 		}
 
@@ -674,6 +684,16 @@ func (v *validator) validateRecursive(val reflect.Value, ctx validationContext) 
 		}
 
 		if err := ruleSet.Validate(value); err != nil {
+			if verr, ok := err.(*ValidationError); ok {
+				verr.AddContextToErrors(ctx.Path)
+				return verr
+			}
+			errs.AddError("unknown", nil, nil, err.Error())
+			errs.AddContextToErrors(ctx.Path)
+			return errs
+		}
+
+		if err := ruleSet.Validate(value); err != nil {
 			return err
 		}
 		return nil
@@ -688,7 +708,12 @@ func (v *validator) validateSlice(slice reflect.Value, ctx validationContext) er
 		newCtx := validationContext{Path: newPath}
 
 		if err := v.validateRecursive(elem, newCtx); err != nil {
-			errs.AppendError(err.(*ValidationError))
+			if verr, ok := err.(*ValidationError); ok {
+				errs.AppendError(verr)
+			} else {
+				errs.AddError("unknown", nil, nil, err.Error())
+				errs.AddContextToErrors(newPath)
+			}
 		}
 	}
 

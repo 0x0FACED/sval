@@ -9,7 +9,7 @@ type ValidationError struct {
 }
 
 type valError struct {
-	ID         int    `json:"id" yaml:"id"`
+	Field      string `json:"field" yaml:"field"`
 	Rule       string `json:"rule" yaml:"rule"`
 	RuleValues any    `json:"rule_values,omitempty" yaml:"rule_values,omitempty"`
 	Provided   any    `json:"provided,omitempty" yaml:"provided,omitempty"`
@@ -25,9 +25,31 @@ func (e *ValidationError) Error() string {
 	return string(data)
 }
 
+func NewValidationError() *ValidationError {
+	return &ValidationError{
+		Errors: make([]*valError, 0),
+	}
+}
+
+func NewValidationErrorWithField(field string) *ValidationError {
+	err := NewValidationError()
+	err.AddContextToErrors(field)
+	return err
+}
+
+func (e *ValidationError) AddContextToErrors(field string) {
+	for _, err := range e.Errors {
+		if err.Field == "" {
+			err.Field = field
+		} else if field != "" {
+			err.Field = field + "." + err.Field
+		}
+	}
+}
+
 func (e *ValidationError) AddError(rule string, ruleValue, provided any, message string) {
 	e.Errors = append(e.Errors, &valError{
-		ID:         len(e.Errors) + 1,
+		Field:      "",
 		Rule:       rule,
 		RuleValues: ruleValue,
 		Provided:   provided,
@@ -40,25 +62,14 @@ func (e *ValidationError) AppendError(err *ValidationError) {
 		return
 	}
 
-	baseID := len(e.Errors)
-	for _, verr := range err.Errors {
-		newError := &valError{
-			ID:         baseID + verr.ID,
-			Rule:       verr.Rule,
-			RuleValues: verr.RuleValues,
-			Provided:   verr.Provided,
-			Message:    verr.Message,
-		}
-		e.Errors = append(e.Errors, newError)
+	if !e.HasErrors() {
+		e.Errors = make([]*valError, 0, len(err.Errors))
 	}
+
+	e.Errors = append(e.Errors, err.Errors...)
+
 }
 
 func (e *ValidationError) HasErrors() bool {
 	return len(e.Errors) > 0
-}
-
-func NewValidationError() *ValidationError {
-	return &ValidationError{
-		Errors: make([]*valError, 0),
-	}
 }
