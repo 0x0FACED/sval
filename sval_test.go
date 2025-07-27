@@ -436,6 +436,39 @@ func TestCreateRuleSet(t *testing.T) {
 			},
 		},
 		{
+			name: "mac rules",
+			cfg: RuleConfig{
+				Type: "mac",
+				Params: map[string]any{
+					"required":        true,
+					"formats":         []string{MACFormatColon},
+					"cases":           []string{MACCaseLower, MACCaseUpper},
+					"types":           []string{MACTypeUnicast, MACTypeMulticast},
+					"allow_zero":      true,
+					"allow_broadcast": false,
+					"allow_multicast": true,
+					"oui_whitelist":   []string{"00:1A:2B", "00:1B:3C"},
+					"blacklist":       []string{"FF:FF:FF:FF:FF:FF"},
+					"max_octets":      6,
+				},
+			},
+			wantErr: false,
+			wantRules: &MACRules{
+				BaseRules: BaseRules{
+					Required: true,
+				},
+				Formats:        []MACFormat{MACFormatColon},
+				Cases:          []MACCase{MACCaseLower, MACCaseUpper},
+				Types:          []MACAddressType{MACTypeUnicast, MACTypeMulticast},
+				AllowZero:      ptr(true),
+				AllowBroadcast: ptr(false),
+				AllowMulticast: ptr(true),
+				OUIWhitelist:   []string{"00:1A:2B", "00:1B:3C"},
+				Blacklist:      []string{"FF:FF:FF:FF:FF:FF"},
+				MaxOctets:      ptr(6),
+			},
+		},
+		{
 			name: "unknown type",
 			cfg: RuleConfig{
 				Type: "unknown",
