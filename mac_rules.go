@@ -22,7 +22,7 @@ const (
 	MACRuleNameAllowMulti MACRuleName = "allow_multicast"
 )
 
-type MACFormat string
+type MACFormat = string
 
 const (
 	MACFormatAny    MACFormat = "any"    // any of formats are allowed. used by default
@@ -32,7 +32,7 @@ const (
 	MACFormatRaw    MACFormat = "raw"    // 00005e005301
 )
 
-type MACCase string
+type MACCase = string
 
 const (
 	MACCaseAny   MACCase = "any" // by default
@@ -41,7 +41,7 @@ const (
 	MACCaseCamel MACCase = "camel" // Cisco-style (0000.5E00.5301)
 )
 
-type MACAddressType string
+type MACAddressType = string
 
 const (
 	MACTypeUnicast   MACAddressType = "unicast"   // bit 0 == 0

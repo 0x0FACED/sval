@@ -109,34 +109,34 @@ func (r *PasswordRules) Validate(i any) error {
 			hasNumber++
 		case unicode.IsPunct(char) || unicode.IsSymbol(char):
 			if len(r.SpecialChars) > 0 {
-				found := false
 				for _, special := range r.SpecialChars {
 					if char == special {
-						found = true
 						hasSpecial++
 						break
 					}
 				}
-				if !found {
-					err.AddError(PasswordRuleNameSpecialChars, r.SpecialChars, char, "password must contain at least one of the allowed special characters")
-				}
 			} else {
-				hasSpecial++
+				hasSpecial++ // if no special chars defined, we just count all puncts and symbols as special
 			}
 		}
 
 		if len(r.DisallowedChars) > 0 {
-			if slices.Contains(r.DisallowedChars, char) {
-				err.AddError(PasswordRuleNameDisallowedChars, r.DisallowedChars, char, "password must not contain disallowed characters")
+			if slices.Contains(r.DisallowedChars, char) && !(len(r.SpecialChars) != 0 && !slices.Contains(r.SpecialChars, char)) {
+				err.AddError(PasswordRuleNameDisallowedChars, r.DisallowedChars, string(char), "password must not contain disallowed characters")
 			}
 		}
 
 		if len(r.AllowedChars) > 0 {
-			if !slices.Contains(r.AllowedChars, char) {
-				err.AddError(PasswordRuleNameAllowedChars, r.AllowedChars, char, "password must contain allowed characters only")
+			if !slices.Contains(r.AllowedChars, char) && (len(r.SpecialChars) != 0 && !slices.Contains(r.SpecialChars, char)) {
+				err.AddError(PasswordRuleNameAllowedChars, r.AllowedChars, string(char), "password must contain allowed characters only")
 			}
 		}
+	}
 
+	if len(r.SpecialChars) > 0 {
+		if hasSpecial == 0 {
+			err.AddError(PasswordRuleNameSpecialChars, r.SpecialChars, i, "password must contain at least one special character")
+		}
 	}
 
 	if r.MinUpper > 0 && hasUpper < r.MinUpper {
