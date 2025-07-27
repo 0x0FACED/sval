@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
 	"log"
 
 	"github.com/0x0FACED/sval"
@@ -19,64 +21,21 @@ type User struct {
 }
 
 func main() {
-	// Example usage of UserStorage
 	storage := UserStorage{
 		Users: []User{
 			{
-				// correct
-				ID:       "UID-TEST-123-END",
-				Name:     "Alice",
-				Age:      30,
-				Password: "qBt3f!g6=-/f4h",
-				Email:    "test@example.org",
+				ID:       "UID-TEST-123-END", // Valid
+				Name:     "Alice",            // Valid
+				Age:      30,                 // Valid
+				Password: "qBt3f!g6=-/f4h",   // Valid
+				Email:    "test@example.org", // Valid
 			},
 			{
-				// incorrect id
-				ID:       "UID-TEST-123-END-EXTRA",
-				Name:     "Bob",
-				Age:      25,
-				Password: "n3g4s8f!g6=-/f4h",
-				Email:    "test@example.org",
-			},
-			{
-				// incorrect name
-				ID:       "UID-TEST-123-END",
-				Name:     "Im BOB 123!",
-				Age:      25,
-				Password: "n3g4s8f!g6=-/f4h",
-				Email:    "test@example.org",
-			},
-			{
-				// incorrect age
-				ID:       "UID-TEST-123-END",
-				Name:     "Im BOB 123!",
-				Age:      8,
-				Password: "n3g4s8f!g6=-/f4h",
-				Email:    "test@example.org",
-			},
-			{
-				// incorrect password
-				ID:       "UID-TEST-123-END",
-				Name:     "Im BOB 123!",
-				Age:      25,
-				Password: "12345",
-				Email:    "test@example.org",
-			},
-			{
-				// incorrect email
-				ID:       "UID-TEST-123-END",
-				Name:     "Im BOB 123!",
-				Age:      25,
-				Password: "n3g4s8f!g6=-/f4h",
-				Email:    "test@@@example.com",
-			},
-			{
-				// fully incorrect
-				ID:       "Incorrect-ID",
-				Name:     "Incorrect Name 123!",
-				Age:      12,
-				Password: "password123",
-				Email:    "test@example@.com",
+				ID:       "Invalid-ID",      // Invalid format
+				Name:     "Bob123",          // Contains digits
+				Age:      15,                // Too young
+				Password: "weak",            // Too weak
+				Email:    "bad@example.com", // Wrong domain
 			},
 		},
 	}
@@ -91,8 +50,8 @@ func main() {
 	}
 
 	if err := validator.Validate(&storage); err != nil {
-		log.Println(err.Error())
-	} else {
-		log.Println("All data is valid!")
+		// Pretty print the error
+		data, _ := json.MarshalIndent(err, "", "  ")
+		fmt.Println(string(data))
 	}
 }
