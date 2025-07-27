@@ -414,16 +414,20 @@ func TestCreateRuleSet(t *testing.T) {
 				BaseRules: BaseRules{
 					Required: true,
 				},
-				MinLen:       8,
-				MaxLen:       64,
-				MinUpper:     2,
-				MinLower:     2,
-				MinDigits:    2,
-				MinSpecial:   2,
-				SpecialChars: []rune{'!', '@', '#', '$', '%', '^', '&', '*', '(', ')'},
-				AllowedChars: []rune{'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
-					'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
-					'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '!', '@', '#', '$', '%', '^', '&', '*', '(', ')'},
+				MinLen:     8,
+				MaxLen:     64,
+				MinUpper:   2,
+				MinLower:   2,
+				MinDigits:  2,
+				MinSpecial: 2,
+				//SpecialChars: []rune{'!', '@', '#', '$', '%', '^', '&', '*', '(', ')'},
+				// or ->
+				SpecialChars: []rune("!@#$%^&*()"),
+				// AllowedChars: []rune{'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
+				// 	'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+				// 	'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '!', '@', '#', '$', '%', '^', '&', '*', '(', ')'},
+				// or ->
+				AllowedChars:         []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()"),
 				DisallowedChars:      []rune{' '},
 				MaxRepeatRun:         3,
 				DetectLinearPatterns: true,
@@ -449,7 +453,6 @@ func TestCreateRuleSet(t *testing.T) {
 				assert.NoError(t, err, "Expected no error, but got one")
 				assert.NotNil(t, rules, "Expected rules to be created, but got nil")
 				if tt.wantRules != nil {
-
 					assert.IsType(t, tt.wantRules, rules, "Expected rules type to match")
 					assert.Equal(t, tt.wantRules, rules, "Expected rules to match")
 				}
