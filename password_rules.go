@@ -122,20 +122,20 @@ func (r *PasswordRules) Validate(i any) error {
 
 		if len(r.DisallowedChars) > 0 {
 			if slices.Contains(r.DisallowedChars, char) && !(len(r.SpecialChars) != 0 && !slices.Contains(r.SpecialChars, char)) {
-				err.AddError(PasswordRuleNameDisallowedChars, r.DisallowedChars, string(char), "password must not contain disallowed characters")
+				err.AddError(PasswordRuleNameDisallowedChars, convertRunesArrayToStrings(r.DisallowedChars), string(char), "password must not contain disallowed characters")
 			}
 		}
 
 		if len(r.AllowedChars) > 0 {
 			if !slices.Contains(r.AllowedChars, char) && (len(r.SpecialChars) != 0 && !slices.Contains(r.SpecialChars, char)) {
-				err.AddError(PasswordRuleNameAllowedChars, r.AllowedChars, string(char), "password must contain allowed characters only")
+				err.AddError(PasswordRuleNameAllowedChars, convertRunesArrayToStrings(r.AllowedChars), string(char), "password must contain allowed characters only")
 			}
 		}
 	}
 
 	if len(r.SpecialChars) > 0 {
 		if hasSpecial == 0 {
-			err.AddError(PasswordRuleNameSpecialChars, r.SpecialChars, i, "password must contain at least one special character")
+			err.AddError(PasswordRuleNameSpecialChars, convertRunesArrayToStrings(r.SpecialChars), i, "password must contain at least one special character")
 		}
 	}
 

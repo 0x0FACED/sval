@@ -127,3 +127,11 @@ func convertAnyArrayToStrings(arr []any) ([]string, error) {
 	}
 	return result, nil
 }
+
+func convertRunesArrayToStrings(arr []rune) []string {
+	result := make([]string, len(arr))
+	for i, r := range arr {
+		result[i] = string(r)
+	}
+	return result
+}
