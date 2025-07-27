@@ -13,7 +13,7 @@ const (
 	PasswordRuleNameMaxLen               PasswordRuleName = "max_len"                // Max len of password (in symbols, not bytes)
 	PasswordRuleNameMinUpper             PasswordRuleName = "min_upper"              // Min count of upper characters
 	PasswordRuleNameMinLower             PasswordRuleName = "min_lower"              // Min count of lower characters
-	PasswordRuleNameMinNumbers           PasswordRuleName = "min_numbers"            // Min count of numbers
+	PasswordRuleNameMinDigits            PasswordRuleName = "min_digits"             // Min count of numbers
 	PasswordRuleNameMinSpecial           PasswordRuleName = "min_special"            // Min count of special characters
 	PasswordRuleNameSpecialChars         PasswordRuleName = "special_chars"          // List of special characters, that must be present in the password
 	PasswordRuleNameAllowedChars         PasswordRuleName = "allowed_chars"          // List of allowed characters
@@ -37,7 +37,7 @@ type PasswordRules struct {
 	MaxLen               int      `json:"max_len" yaml:"max_len"`                               // 100% need
 	MinUpper             int      `json:"min_upper" yaml:"min_upper"`                           // 100% need if 0 = ignore
 	MinLower             int      `json:"min_lower" yaml:"min_lower"`                           // 100% need if 0 = ignore
-	MinNumbers           int      `json:"min_numbers" yaml:"min_numbers"`                       // 100% need if 0 = ignore
+	MinDigits            int      `json:"min_digits" yaml:"min_digits"`                         // 100% need if 0 = ignore
 	MinSpecial           int      `json:"min_special" yaml:"min_special"`                       // 100% need if 0 = ignore
 	SpecialChars         []rune   `json:"special_chars" yaml:"special_chars"`                   // if not empry - password must contain at least one of these
 	AllowedChars         []rune   `json:"allowed_chars" yaml:"allowed_chars"`                   // if {'a', 'b', 'c'} - password must contain only these chars
@@ -147,8 +147,8 @@ func (r *PasswordRules) Validate(i any) error {
 		err.AddError(PasswordRuleNameMinLower, r.MinLower, i, "password must contain lowwercase characters")
 	}
 
-	if r.MinNumbers > 0 && hasNumber < r.MinNumbers {
-		err.AddError(PasswordRuleNameMinNumbers, r.MinNumbers, i, "password must contain numbers")
+	if r.MinDigits > 0 && hasNumber < r.MinDigits {
+		err.AddError(PasswordRuleNameMinDigits, r.MinDigits, i, "password must contain numbers")
 	}
 
 	if r.MinSpecial > 0 && hasSpecial < r.MinSpecial {

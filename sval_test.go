@@ -256,9 +256,10 @@ func TestNormalizePath(t *testing.T) {
 
 func TestCreateRuleSet(t *testing.T) {
 	tests := []struct {
-		name    string
-		cfg     RuleConfig
-		wantErr bool
+		name      string
+		cfg       RuleConfig
+		wantErr   bool
+		wantRules RuleSet
 	}{
 		{
 			name: "string rules",
@@ -268,30 +269,63 @@ func TestCreateRuleSet(t *testing.T) {
 					"required":      true,
 					"min_len":       5,
 					"max_len":       15,
+					"regex":         "^[a-zA-Z0-9]+$",
 					"only_digits":   true,
 					"only_letters":  false,
 					"no_whitespace": true,
 					"trim_space":    true,
 					"starts_with":   "test",
 					"ends_with":     "end",
-					"contains":      []string{"example", "test"},
-					"not_contains":  []string{"invalid"},
-					"one_of":        []string{"option1", "option2"},
+					"contains":      []any{"example", "test"},
+					"not_contains":  []any{"invalid"},
+					"one_of":        []any{"option1", "option2"},
 					"min_entropy":   2.0,
 				},
 			},
 			wantErr: false,
+			wantRules: &StringRules{
+				BaseRules: BaseRules{
+					Required: true,
+				},
+				MinLen:       5,
+				MaxLen:       15,
+				OnlyDigits:   true,
+				OnlyLetters:  false,
+				NoWhitespace: true,
+				TrimSpace:    true,
+				StartsWith:   ptr("test"),
+				EndsWith:     ptr("end"),
+				Regex:        ptr("^[a-zA-Z0-9]+$"),
+				Contains:     []string{"example", "test"},
+				NotContains:  []string{"invalid"},
+				OneOf:        []string{"option1", "option2"},
+				MinEntropy:   2.0,
+			},
 		},
 		{
 			name: "email rules",
 			cfg: RuleConfig{
 				Type: "email",
 				Params: map[string]any{
-					"required": true,
-					"rfc":      true,
+					"required":         true,
+					"strategy":         "rfc5322",
+					"min_domain_len":   3,
+					"excluded_domains": []string{"example.com", "test.com"},
+					"allowed_domains":  []string{"allowed.com", "example.org"},
+					"regex":            "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",
 				},
 			},
 			wantErr: false,
+			wantRules: &EmailRules{
+				BaseRules: BaseRules{
+					Required: true,
+				},
+				Strategy:        "rfc5322",
+				MinDomainLen:    3,
+				ExcludedDomains: []string{"example.com", "test.com"},
+				AllowedDomains:  []string{"allowed.com", "example.org"},
+				Regex:           ptr("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"),
+			},
 		},
 		{
 			name: "int rules",
@@ -304,6 +338,13 @@ func TestCreateRuleSet(t *testing.T) {
 				},
 			},
 			wantErr: false,
+			wantRules: &IntRules{
+				BaseRules: BaseRules{
+					Required: true,
+				},
+				Min: ptr(0),
+				Max: ptr(100),
+			},
 		},
 		{
 			name: "float rules",
@@ -311,11 +352,18 @@ func TestCreateRuleSet(t *testing.T) {
 				Type: "float",
 				Params: map[string]any{
 					"required": true,
-					"min":      float64(0),
-					"max":      float64(100),
+					"min":      0.0,
+					"max":      100.0,
 				},
 			},
 			wantErr: false,
+			wantRules: &FloatRules{
+				BaseRules: BaseRules{
+					Required: true,
+				},
+				Min: ptr(0.0),
+				Max: ptr(100.0),
+			},
 		},
 		{
 			name: "ip rules",
@@ -330,6 +378,58 @@ func TestCreateRuleSet(t *testing.T) {
 				},
 			},
 			wantErr: false,
+			wantRules: &IPRules{
+				BaseRules: BaseRules{
+					Required: true,
+				},
+				Version:         4,
+				AllowPrivate:    true,
+				AllowedSubnets:  []string{"192.168.0.0/16"},
+				ExcludedSubnets: []string{"172.18.0.0/24"},
+			},
+		},
+		{
+			name: "password rules",
+			cfg: RuleConfig{
+				Type: "password",
+				Params: map[string]any{
+					"required":               true,
+					"min_len":                8,
+					"max_len":                64,
+					"min_upper":              2,
+					"min_lower":              2,
+					"min_digits":             2,
+					"min_special":            2,
+					"special_chars":          "!@#$%^&*()",
+					"allowed_chars":          "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()",
+					"disallowed_chars":       " ",
+					"max_repeat_run":         3,
+					"detect_linear_patterns": true,
+					"blacklist":              []string{"password", "123456", "qwerty"},
+					"min_entropy":            3.0,
+				},
+			},
+			wantErr: false,
+			wantRules: &PasswordRules{
+				BaseRules: BaseRules{
+					Required: true,
+				},
+				MinLen:       8,
+				MaxLen:       64,
+				MinUpper:     2,
+				MinLower:     2,
+				MinDigits:    2,
+				MinSpecial:   2,
+				SpecialChars: []rune{'!', '@', '#', '$', '%', '^', '&', '*', '(', ')'},
+				AllowedChars: []rune{'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
+					'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+					'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '!', '@', '#', '$', '%', '^', '&', '*', '(', ')'},
+				DisallowedChars:      []rune{' '},
+				MaxRepeatRun:         3,
+				DetectLinearPatterns: true,
+				Blacklist:            []string{"password", "123456", "qwerty"},
+				MinEntropy:           3.0,
+			},
 		},
 		{
 			name: "unknown type",
@@ -342,11 +442,17 @@ func TestCreateRuleSet(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := createRuleSet(tt.cfg)
+			rules, err := createRuleSet(tt.cfg)
 			if tt.wantErr {
 				assert.Error(t, err, "Expected error, but got none")
 			} else {
 				assert.NoError(t, err, "Expected no error, but got one")
+				assert.NotNil(t, rules, "Expected rules to be created, but got nil")
+				if tt.wantRules != nil {
+
+					assert.IsType(t, tt.wantRules, rules, "Expected rules type to match")
+					assert.Equal(t, tt.wantRules, rules, "Expected rules to match")
+				}
 			}
 		})
 	}

@@ -9,7 +9,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"unicode/utf8"
 
 	"gopkg.in/yaml.v3"
 )
@@ -205,7 +204,55 @@ func parseStringRules(params map[string]any) (*StringRules, error) {
 
 	if v, ok := params[StringRuleNameNoWhitespace]; ok {
 		if noWhitespace, ok := v.(bool); ok {
-			rules.OnlyLetters = noWhitespace
+			rules.NoWhitespace = noWhitespace
+		}
+	}
+
+	if v, ok := params[StringRuleNameTrimSpace]; ok {
+		if trimSpace, ok := v.(bool); ok {
+			rules.TrimSpace = trimSpace
+		}
+	}
+
+	if v, ok := params[StringRuleNameContains]; ok {
+		contains, err := ConvertToStringArray(v)
+		if err != nil {
+			return nil, fmt.Errorf("invalid contains values: %w", err)
+		}
+		rules.Contains = contains
+	}
+
+	if v, ok := params[StringRuleNameNotContains]; ok {
+		notContains, err := ConvertToStringArray(v)
+		if err != nil {
+			return nil, fmt.Errorf("invalid not contains values: %w", err)
+		}
+		rules.NotContains = notContains
+	}
+
+	if v, ok := params[StringRuleNameOneOf]; ok {
+		oneOf, err := ConvertToStringArray(v)
+		if err != nil {
+			return nil, fmt.Errorf("invalid one of values: %w", err)
+		}
+		rules.OneOf = oneOf
+	}
+
+	if v, ok := params[StringRuleNameStartsWith]; ok {
+		if startsWith, ok := v.(string); ok {
+			rules.StartsWith = &startsWith
+		}
+	}
+
+	if v, ok := params[StringRuleNameEndsWith]; ok {
+		if endsWith, ok := v.(string); ok {
+			rules.EndsWith = &endsWith
+		}
+	}
+
+	if v, ok := params[StringRuleNameMinEntropy]; ok {
+		if minEntropy, ok := v.(float64); ok {
+			rules.MinEntropy = minEntropy
 		}
 	}
 
@@ -238,30 +285,31 @@ func parseEmailRules(params map[string]any) (*EmailRules, error) {
 	}
 
 	if v, ok := params[EmailRuleNameExcludedDomains]; ok {
-		if domains, ok := v.([]any); ok {
-			for _, d := range domains {
-				if domain, ok := d.(string); ok {
-					rules.ExcludedDomains = append(rules.ExcludedDomains, domain)
-				}
-			}
+		domains, err := ConvertToStringArray(v)
+		if err != nil {
+			return nil, fmt.Errorf("invalid excluded domains: %w", err)
 		}
+		rules.ExcludedDomains = domains
 	}
 
 	if v, ok := params[EmailRuleNameAllowedDomains]; ok {
-		if domains, ok := v.([]any); ok {
-			for _, d := range domains {
-				if domain, ok := d.(string); ok {
-					rules.AllowedDomains = append(rules.AllowedDomains, domain)
-				}
-			}
+		domains, err := ConvertToStringArray(v)
+		if err != nil {
+			return nil, fmt.Errorf("invalid allowed domains: %w", err)
 		}
+		rules.AllowedDomains = domains
 	}
 
 	if v, ok := params[EmailRuleNameRegexp]; ok {
+		// global regex for email validation
 		if regex, ok := v.(*string); ok {
-			// global regex for email validation
 			emailRegexp = regexp.MustCompile(*regex)
 			rules.Regex = regex
+		} else {
+			if regex, ok := v.(string); ok {
+				emailRegexp = regexp.MustCompile(regex)
+				rules.Regex = &regex
+			}
 		}
 	}
 
@@ -302,9 +350,9 @@ func parsePasswordRules(params map[string]any) (*PasswordRules, error) {
 		}
 	}
 
-	if v, ok := params[PasswordRuleNameMinNumbers]; ok {
+	if v, ok := params[PasswordRuleNameMinDigits]; ok {
 		if minNumbers, ok := v.(int); ok {
-			rules.MinNumbers = minNumbers
+			rules.MinDigits = minNumbers
 		}
 	}
 
@@ -315,39 +363,27 @@ func parsePasswordRules(params map[string]any) (*PasswordRules, error) {
 	}
 
 	if v, ok := params[PasswordRuleNameSpecialChars]; ok {
-		if specialChars, ok := v.([]any); ok {
-			for _, c := range specialChars {
-				if char, ok := c.(rune); ok {
-					rules.SpecialChars = append(rules.SpecialChars, char)
-				} else if str, ok := c.(string); ok && utf8.RuneCountInString(str) == 1 {
-					rules.SpecialChars = append(rules.SpecialChars, []rune(str)[0])
-				}
-			}
+		chars, err := ConvertToRuneArray(v)
+		if err != nil {
+			return nil, fmt.Errorf("invalid special chars: %w", err)
 		}
+		rules.SpecialChars = chars
 	}
 
 	if v, ok := params[PasswordRuleNameAllowedChars]; ok {
-		if allowedChars, ok := v.([]any); ok {
-			for _, c := range allowedChars {
-				if char, ok := c.(rune); ok {
-					rules.AllowedChars = append(rules.AllowedChars, char)
-				} else if str, ok := c.(string); ok && utf8.RuneCountInString(str) == 1 {
-					rules.AllowedChars = append(rules.AllowedChars, []rune(str)[0])
-				}
-			}
+		chars, err := ConvertToRuneArray(v)
+		if err != nil {
+			return nil, fmt.Errorf("invalid allowed chars: %w", err)
 		}
+		rules.AllowedChars = chars
 	}
 
 	if v, ok := params[PasswordRuleNameDisallowedChars]; ok {
-		if disallowedChars, ok := v.([]any); ok {
-			for _, c := range disallowedChars {
-				if char, ok := c.(rune); ok {
-					rules.DisallowedChars = append(rules.DisallowedChars, char)
-				} else if str, ok := c.(string); ok && utf8.RuneCountInString(str) == 1 {
-					rules.DisallowedChars = append(rules.DisallowedChars, []rune(str)[0])
-				}
-			}
+		chars, err := ConvertToRuneArray(v)
+		if err != nil {
+			return nil, fmt.Errorf("invalid disallowed chars: %w", err)
 		}
+		rules.DisallowedChars = chars
 	}
 
 	if v, ok := params[PasswordRuleNameMaxRepeatRun]; ok {
@@ -363,13 +399,11 @@ func parsePasswordRules(params map[string]any) (*PasswordRules, error) {
 	}
 
 	if v, ok := params[PasswordRuleNameBlacklist]; ok {
-		if blacklist, ok := v.([]any); ok {
-			for _, b := range blacklist {
-				if blacklisted, ok := b.(string); ok {
-					rules.Blacklist = append(rules.Blacklist, blacklisted)
-				}
-			}
+		blacklist, err := ConvertToStringArray(v)
+		if err != nil {
+			return nil, fmt.Errorf("invalid blacklist: %w", err)
 		}
+		rules.Blacklist = blacklist
 	}
 
 	if v, ok := params[PasswordRuleNameMinEntropy]; ok {
@@ -454,23 +488,19 @@ func parseIPRules(params map[string]any) (RuleSet, error) {
 	}
 
 	if v, ok := params[IPRuleNameAllowedSubnets]; ok {
-		if subnets, ok := v.([]any); ok {
-			for _, d := range subnets {
-				if domain, ok := d.(string); ok {
-					rules.AllowedSubnets = append(rules.AllowedSubnets, domain)
-				}
-			}
+		subnets, err := ConvertToStringArray(v)
+		if err != nil {
+			return nil, fmt.Errorf("invalid allowed subnets: %w", err)
 		}
+		rules.AllowedSubnets = subnets
 	}
 
 	if v, ok := params[IPRuleNameExcludedSubnets]; ok {
-		if subnets, ok := v.([]any); ok {
-			for _, d := range subnets {
-				if domain, ok := d.(string); ok {
-					rules.ExcludedSubnets = append(rules.ExcludedSubnets, domain)
-				}
-			}
+		subnets, err := ConvertToStringArray(v)
+		if err != nil {
+			return nil, fmt.Errorf("invalid excluded subnets: %w", err)
 		}
+		rules.ExcludedSubnets = subnets
 	}
 
 	return rules, nil
