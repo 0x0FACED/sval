@@ -107,6 +107,7 @@ const (
 	TypeFloat    RuleType = "float"
 	TypeIP       RuleType = "ip"
 	TypeMAC      RuleType = "mac"
+	TypeTime     RuleType = "time"
 )
 
 type RuleConfig struct {
@@ -147,6 +148,8 @@ func createRuleSet(cfg RuleConfig) (RuleSet, error) {
 		return parseIPRules(cfg.Params)
 	case string(TypeMAC):
 		return parseMACRules(cfg.Params)
+	case string(TypeTime):
+		return parseTimeRules(cfg.Params)
 	default:
 		return nil, fmt.Errorf("unknown rule type: %s", cfg.Type)
 	}
@@ -603,6 +606,14 @@ func parseIPRules(params map[string]any) (RuleSet, error) {
 	}
 
 	return rules, nil
+}
+
+func parseTimeRules(params map[string]any) (*TimeRules, error) {
+	_ = params
+	return nil, errors.New("parseTimeRules is not implemented yet")
+	//rules := &TimeRules{}
+
+	//return rules, nil
 }
 
 type validationContext struct {
